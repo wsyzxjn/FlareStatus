@@ -1,0 +1,14 @@
+{
+  "routes": [],
+  "middleware": {
+    "runtime": "edge",
+    "matcher": [
+      {
+        "source": "/api/:path*"
+      },
+      {
+        "source": "/metrics"
+      }
+    ]
+  }
+}

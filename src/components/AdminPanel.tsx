@@ -42,6 +42,7 @@ import {
   Incident,
   IncidentUpdate,
 } from '../../worker/types';
+import { apiFetch } from '../api';
 import { DEFAULT_CATEGORIES, INITIAL_STATUS_DATA } from '../mockData';
 import { Translations, Language } from '../i18n';
 
@@ -97,7 +98,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Fetch live admin data from /api/admin/data
   React.useEffect(() => {
-    fetch('/api/admin/data')
+    apiFetch('/api/admin/data')
       .then((res) => res.json())
       .then((data: any) => {
         if (data.userEmail) setAdminEmail(data.userEmail);
@@ -213,7 +214,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const syncIncidentsToParent = (updatedList: Incident[]) => {
     setIncidents(updatedList);
-    fetch('/api/admin/incidents', {
+    apiFetch('/api/admin/incidents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedList),
@@ -229,7 +230,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleClearAllData = async () => {
     if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有监控端点、自定义分类、事件历史与告警通道吗？此操作将彻底清空云端 KV 数据库。' : 'Warning: Are you sure you want to clear all services, categories, incidents and KV storage?')) return;
     try {
-      await fetch('/api/admin/clear-data', {
+      await apiFetch('/api/admin/clear-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope: 'all' }),
@@ -246,7 +247,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleClearServices = async () => {
     if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有监控端点吗？此操作将删除所有端点及其探测数据。' : 'Warning: Are you sure you want to clear all service endpoints?')) return;
     try {
-      await fetch('/api/admin/clear-data', {
+      await apiFetch('/api/admin/clear-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope: 'services' }),
@@ -259,7 +260,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleClearIncidents = async () => {
     if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有事件通告与维护记录吗？' : 'Warning: Are you sure you want to clear all incidents and maintenance records?')) return;
     try {
-      await fetch('/api/admin/clear-data', {
+      await apiFetch('/api/admin/clear-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope: 'incidents' }),
@@ -273,7 +274,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleClearNotifications = async () => {
     if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有告警通道配置吗？' : 'Warning: Are you sure you want to clear all notification channels?')) return;
     try {
-      await fetch('/api/admin/clear-data', {
+      await apiFetch('/api/admin/clear-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scope: 'notifications' }),
@@ -284,7 +285,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleSaveGlobalSettings = () => {
-    fetch('/api/admin/settings', {
+    apiFetch('/api/admin/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
@@ -296,7 +297,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleToggleService = (id: string) => {
     const updated = services.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s));
     setServices(updated);
-    fetch('/api/admin/services', {
+    apiFetch('/api/admin/services', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
@@ -307,7 +308,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleDeleteService = (id: string) => {
     const updated = services.filter((s) => s.id !== id);
     setServices(updated);
-    fetch('/api/admin/services', {
+    apiFetch('/api/admin/services', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
@@ -401,7 +402,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setServices(updated);
 
     try {
-      await fetch('/api/admin/services', {
+      await apiFetch('/api/admin/services', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
@@ -453,7 +454,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
     const updated = categories.filter((c) => c.id !== catId);
     setCategories(updated);
-    fetch('/api/admin/categories', {
+    apiFetch('/api/admin/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
@@ -462,7 +463,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const fallbackId = updated[0]?.id || 'default';
     const updatedServices = services.map((s) => (s.categoryId === catId ? { ...s, categoryId: fallbackId } : s));
     setServices(updatedServices);
-    fetch('/api/admin/services', {
+    apiFetch('/api/admin/services', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedServices),
@@ -488,7 +489,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       updated = [...categories, newCat];
     }
     setCategories(updated);
-    fetch('/api/admin/categories', {
+    apiFetch('/api/admin/categories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
@@ -667,7 +668,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleDeleteNotification = (notifId: string) => {
     const updatedNotifs = notifications.filter((n) => n.id !== notifId);
     setNotifications(updatedNotifs);
-    fetch('/api/admin/notifications', {
+    apiFetch('/api/admin/notifications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedNotifs),
@@ -678,7 +679,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       notificationChannelIds: (s.notificationChannelIds || []).filter((id) => id !== notifId),
     }));
     setServices(updatedServices);
-    fetch('/api/admin/services', {
+    apiFetch('/api/admin/services', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedServices),
@@ -690,7 +691,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const handleToggleNotification = (notifId: string) => {
     const updated = notifications.map((n) => (n.id === notifId ? { ...n, enabled: !n.enabled } : n));
     setNotifications(updated);
-    fetch('/api/admin/notifications', {
+    apiFetch('/api/admin/notifications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
@@ -729,7 +730,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       updated = [...notifications, newNotif];
     }
     setNotifications(updated);
-    fetch('/api/admin/notifications', {
+    apiFetch('/api/admin/notifications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
@@ -795,7 +796,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
     const startTime = Date.now();
     try {
-      const res = await fetch('/api/admin/test-probe', {
+      const res = await apiFetch('/api/admin/test-probe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

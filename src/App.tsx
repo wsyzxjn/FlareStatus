@@ -6,8 +6,9 @@ import { IncidentSection } from './components/IncidentSection';
 import { Footer } from './components/Footer';
 import { AdminPanel } from './components/AdminPanel';
 import { INITIAL_STATUS_DATA } from './mockData';
-import { SystemStatusData, ServiceCategory } from './types';
+import { SystemStatusData, ServiceCategory, ServiceItem } from './types';
 import { DICTIONARY, Language } from './i18n';
+import { apiFetch } from './api';
 import {
   Search,
   Server,
@@ -99,7 +100,7 @@ export function App() {
   const fetchLiveStatus = async () => {
     setIsRefreshing(true);
     try {
-      const res = await fetch('/api/status');
+      const res = await apiFetch('/api/status');
       if (res.ok) {
         const json = await res.json();
         if (json.categories) {
@@ -174,7 +175,11 @@ export function App() {
     return (
       <AdminPanel
         onBackToPublic={() => {
-          window.location.href = '/';
+          setCurrentView('public');
+          if (typeof window !== 'undefined') {
+            window.history.pushState({}, '', '/' + window.location.search);
+          }
+          fetchLiveStatus();
         }}
         t={t}
         lang={lang}
