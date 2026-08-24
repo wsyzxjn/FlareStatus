@@ -177,7 +177,7 @@ export function App() {
         onBackToPublic={() => {
           setCurrentView('public');
           if (typeof window !== 'undefined') {
-            window.history.pushState({}, '', '/' + window.location.search);
+            window.history.pushState({}, '', '/');
           }
           fetchLiveStatus();
         }}
