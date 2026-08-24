@@ -50,7 +50,7 @@ function localApiMockPlugin(): Plugin {
             id: s.id,
             name: s.name,
             url: s.url,
-            categoryId: s.categoryId,
+            categoryId: s.categoryId || 'default',
             status: s.enabled ? 'operational' : 'maintenance',
             currentLatency: 24,
             uptime30d: 100,
@@ -62,6 +62,21 @@ function localApiMockPlugin(): Plugin {
             updatedAt: new Date().toISOString(),
           }));
 
+          const existingCatIds = new Set(localCategories.map((c) => c.id));
+          const dynamicCategories = [...localCategories];
+          for (const s of liveServices) {
+            if (s.categoryId && !existingCatIds.has(s.categoryId)) {
+              existingCatIds.add(s.categoryId);
+              dynamicCategories.push({
+                id: s.categoryId,
+                name: s.categoryId === 'default' ? '默认分类 (Default)' : s.categoryId,
+                shortName: s.categoryId,
+                description: '基础服务与生产 API 端点',
+                icon: 'server',
+              });
+            }
+          }
+
           const responseData = {
             systemStatus: 'operational',
             headline: 'All Systems Operational',
@@ -69,12 +84,12 @@ function localApiMockPlugin(): Plugin {
             lastUpdated: new Date().toISOString(),
             overallUptime90d: 100,
             avgLatencyMs: totalServices > 0 ? 24 : 0,
-            totalProbesToday: 0,
+            totalProbesToday: totalServices * 720,
             activeRegionsCount: totalServices > 0 ? 310 : 0,
-            categories: localCategories.map((cat) => ({
+            categories: dynamicCategories.map((cat) => ({
               ...cat,
               services: liveServices.filter((s) => s.categoryId === cat.id),
-            })),
+            })).filter((cat) => cat.services.length > 0),
             activeIncidents: localIncidents.filter((i) => i.status !== 'resolved'),
             pastIncidents: localIncidents.filter((i) => i.status === 'resolved'),
           };

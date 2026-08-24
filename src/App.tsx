@@ -120,8 +120,9 @@ export function App() {
     }
   };
 
-  // Auto-refresh every 60s
+  // Fetch live status on initial mount and auto-refresh every 60s
   useEffect(() => {
+    fetchLiveStatus();
     const timer = setInterval(() => {
       fetchLiveStatus();
     }, 60000);
@@ -237,7 +238,7 @@ export function App() {
             ? Math.round(allServicesList.reduce((acc, s) => acc + s.currentLatency, 0) / totalEndpointsCount)
             : 0;
           const dynamicOverallUptime = totalEndpointsCount > 0
-            ? Number((allServicesList.reduce((acc, s) => acc + s.uptime90d, 0) / totalEndpointsCount).toFixed(2))
+            ? Number((allServicesList.reduce((acc, s) => acc + (s.uptime90d ?? (s as any).uptime30d ?? (s as any).uptime ?? 100), 0) / totalEndpointsCount).toFixed(2))
             : 100;
           const now = new Date();
           const minutesPassedToday = now.getHours() * 60 + now.getMinutes();

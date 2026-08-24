@@ -430,7 +430,21 @@ export default {
         categoriesMap[item.categoryId].push(liveState);
       }
 
-      const categories = configuredCategories
+      const existingCatIds = new Set(configuredCategories.map((c) => c.id));
+      const mergedCategories = [...configuredCategories];
+      for (const catId of Object.keys(categoriesMap)) {
+        if (!existingCatIds.has(catId)) {
+          mergedCategories.push({
+            id: catId,
+            name: catId === 'default' ? '默认分类 (Default)' : catId,
+            shortName: catId,
+            description: '基础服务与生产 API 端点',
+            icon: 'server',
+          });
+        }
+      }
+
+      const categories = mergedCategories
         .map((cat) => ({
           id: cat.id,
           name: cat.name,

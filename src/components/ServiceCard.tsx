@@ -136,7 +136,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
               {/* Uptime % */}
               <span className="text-[11px] sm:text-xs font-semibold text-[#6e6e73] dark:text-[#a1a1a6] font-mono">
-                {service.uptime90d}%
+                {service.uptime90d ?? (service as any).uptime30d ?? (service as any).uptime ?? 100}%
               </span>
             </div>
 
@@ -161,7 +161,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
         {/* Timeline Bar Strip */}
         <div>
-          <TimelineBar history={service.history90d} daysCount={timelineDays} t={t} />
+          <TimelineBar history={service.history90d || (service as any).history30d || (service as any).history || []} daysCount={timelineDays} t={t} />
         </div>
       </div>
 

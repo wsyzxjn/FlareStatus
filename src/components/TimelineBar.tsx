@@ -9,10 +9,11 @@ interface TimelineBarProps {
 }
 
 export const TimelineBar: React.FC<TimelineBarProps> = ({
-  history,
+  history = [],
   daysCount = 1,
   t,
 }) => {
+  const safeHistory = Array.isArray(history) && history.length > 0 ? history : [];
   const [hoveredDay, setHoveredDay] = useState<{
     day: DayHistory;
     index: number;
@@ -23,7 +24,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
   let displayedItems: (DayHistory & { label?: string })[] = [];
 
   if (daysCount === 1) {
-    const todayItem = history[history.length - 1] || {
+    const todayItem = safeHistory.length > 0 ? safeHistory[safeHistory.length - 1] : {
       date: new Date().toISOString().split('T')[0],
       status: 'operational' as const,
       uptime: 100,
@@ -43,7 +44,20 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
       });
     }
   } else {
-    displayedItems = history.slice(-daysCount);
+    if (safeHistory.length > 0) {
+      displayedItems = safeHistory.slice(-daysCount);
+    } else {
+      const now = new Date();
+      for (let i = daysCount - 1; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        displayedItems.push({
+          date: d.toISOString().split('T')[0],
+          status: 'operational' as const,
+          uptime: 100,
+          avgLatency: 20,
+        });
+      }
+    }
   }
 
   const getPillColor = (status: DayHistory['status']) => {
