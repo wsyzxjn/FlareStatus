@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "apple-status-worker",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    "crons": ["*/2 * * * *"] // Probe every 2 minutes
+  },
+  "kv_namespaces": [
+    {
+      "binding": "STATUS_KV",
+      "id": "your-kv-namespace-id-here"
+    }
+  ]
+}
