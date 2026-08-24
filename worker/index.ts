@@ -159,6 +159,7 @@ const DEFAULT_NOTIFICATIONS: NotificationChannel[] = [
 interface Env {
   STATUS_KV?: KVNamespace;
   ADMIN_API_KEY?: string;
+  ASSETS?: Fetcher;
 }
 
 // Generate realistic simulated past 90 days history for MVP
@@ -741,6 +742,11 @@ export default {
         }),
         { headers: corsHeaders }
       );
+    }
+
+    // Fallback to static frontend SPA assets (Vite dist) if available
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
     }
 
     return new Response(
