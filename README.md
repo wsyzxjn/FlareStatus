@@ -6,7 +6,13 @@
 
 An elegant, zero-maintenance, serverless status page and uptime monitoring engine built with Cloudflare Workers, KV, React 19, and Tailwind CSS v4. Features deep **Uptime Kuma** parity including multi-protocol probing, SSL cert countdowns, push heartbeats, per-service alert routing, Prometheus metrics, and Cloudflare Zero Trust admin protection.
 
-[Live Demo](https://status.amatsuka.net/) • [Features](#-key-features) • [Quick Start](#-quick-start) • [Zero Trust Guide](#-cloudflare-zero-trust-access-guide) • [APIs](#-api-endpoints)
+[Live Demo](https://status.amatsuka.net/) • [1-Click Deploy](#-1-click-deploy-to-cloudflare) • [Features](#-key-features) • [Quick Start](#-quick-start) • [Zero Trust Guide](#-cloudflare-zero-trust-access-guide) • [APIs](#-api-endpoints)
+
+<br/>
+
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/wsyzxjn/FlareStatus)
+
+<br/>
 
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers%20%2B%20KV-F38020?style=flat&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
@@ -88,9 +94,25 @@ pnpm dev
 
 ---
 
-## ☁️ Deployment (Cloudflare Workers + KV)
+## ☁️ Deployment Guide
 
-### 1. Create a Cloudflare KV Namespace
+### ⚡ 1-Click Deploy to Cloudflare Workers
+
+Deploy your own instance of FlareStatus with one click:
+
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/wsyzxjn/FlareStatus)
+
+1. Click the **Deploy to Cloudflare Workers** button above.
+2. Authorize Cloudflare with your GitHub account to automatically fork and link the repository.
+3. Cloudflare will automatically provision your Worker, build the frontend assets, and deploy to your edge subdomain (`*.workers.dev`).
+
+---
+
+### 🛠️ CLI Manual Deployment via Wrangler
+
+If you prefer full control over custom domains and KV namespaces:
+
+#### 1. Create a Cloudflare KV Namespace
 ```bash
 npx wrangler kv namespace create STATUS_KV
 ```
@@ -118,13 +140,13 @@ Copy the returned `id` into `wrangler.jsonc`:
 }
 ```
 
-### 2. Build & Deploy
+#### 2. Build & Deploy
 ```bash
 pnpm build
 npx wrangler deploy
 ```
 
-### 3. Bind Your Custom Domain
+#### 3. Bind Your Custom Domain
 To bind a custom domain like `status.yourdomain.com`:
 Add a route in `wrangler.jsonc`:
 ```jsonc
