@@ -88,7 +88,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [notifications, setNotifications] = useState<NotificationChannel[]>(INITIAL_NOTIFICATIONS);
   const [adminEmail, setAdminEmail] = useState<string>('admin@edge.internal');
   const [settings, setSettings] = useState<GlobalSiteSettings>({
-    siteTitle: 'Cloudflare Status',
+    siteTitle: 'FlareStatus',
     siteSubtitle: 'Real-time telemetry and edge health across all 310+ global locations',
     targetSla: 99.9,
     probeInterval: 2,

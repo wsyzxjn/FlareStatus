@@ -29,7 +29,7 @@ const DEFAULT_CATEGORIES: CategoryConfig[] = [
 ];
 
 const DEFAULT_SETTINGS: GlobalSiteSettings = {
-  siteTitle: 'Cloudflare Status',
+  siteTitle: 'FlareStatus',
   siteSubtitle: 'Real-time telemetry and edge health across all global locations',
   targetSla: 99.9,
   probeInterval: 2,

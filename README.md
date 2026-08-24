@@ -1,153 +1,179 @@
-# 🍏 Apple Minimalist Cloudflare Status Monitor (MVP)
+<div align="center">
 
-基于 **Cloudflare Serverless（Workers + KV + Pages）** 打造的 **Apple 极简磨砂质感（Cupertino Glassmorphism）** 全球边缘服务状态监控与管理系统，深度对齐 **Uptime Kuma** 核心监控能力与高度自定义告警流。
+# ⚡ FlareStatus
 
----
+**Apple-style Minimalist & Glassmorphism Status Monitor powered by Cloudflare Serverless**
 
-## ✨ 核心特性与 Uptime Kuma 深度对齐
+An elegant, zero-maintenance, serverless status page and uptime monitoring engine built with Cloudflare Workers, KV, React 19, and Tailwind CSS v4. Features deep **Uptime Kuma** parity including multi-protocol probing, SSL cert countdowns, push heartbeats, per-service alert routing, Prometheus metrics, and Cloudflare Zero Trust admin protection.
 
-### 1. 🛡️ Uptime Kuma 级别的高度自定义告警系统
-- **服务专属独立告警分流（Per-Service Alert Routing）**：
-  - 支持为不同的监控服务勾选绑定**不同的告警通道**（例如：核心 API 发生故障推送到「SRE 紧急邮件 + Telegram」，而内部文档服务仅推送到「飞书/钉钉群」）。
-- **细粒度触发时机规则（Trigger Conditions）**：
-  - 🔴 **服务故障宕机（Trigger on Down）**：连续失败达阈值时触发；
-  - 🟢 **服务恢复正常（Trigger on Up / Recovery）**：自动发送恢复通知；
-  - 🟡 **性能降级（Trigger on Degraded）**：响应耗时异常升高时告警。
-- **富文本与 JSON 消息模板编辑器（Custom Templates）**：
-  - 支持在消息标题与正文模板中点击自动插入动态变量：
-    - `{{SERVICE_NAME}}`：发生变动的服务名称
-    - `{{STATUS}}`：最新状态（`UP` / `DOWN` / `DEGRADED`）
-    - `{{STATUS_EMOJI}}`：状态图标（🟢 / 🔴 / 🟡）
-    - `{{TIME}}`：事件触发时间
-    - `{{LATENCY}}`：实时响应延迟毫秒数
-    - `{{HTTP_CODE}}`：HTTP 状态码（如 502, 504）
-    - `{{TARGET_URL}}`：监控目标 URL
-    - `{{ERROR_MSG}}`：超时或连接拒绝具体原因
-- **多元告警通道支持**：
-  - 📧 **邮件告警 (Email)**：支持 Resend、SendGrid、标准 SMTP 与 Cloudflare Email Routing；
-  - 🪝 **通用 Webhook**：支持自定义 URL、Auth Header 密钥与 JSON 结构体；
-  - 🕊️ **国内即时通讯**：飞书 (Feishu/Lark)、钉钉 (DingTalk)、企业微信 (WeCom)；
-  - ✈️ **Telegram Bot**。
+[Live Demo](https://status.amatsuka.net/) • [Features](#-key-features) • [Quick Start](#-quick-start) • [Zero Trust Guide](#-cloudflare-zero-trust-access-guide) • [APIs](#-api-endpoints)
+
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers%20%2B%20KV-F38020?style=flat&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind%20CSS-v4-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+</div>
 
 ---
 
-### 2. 🎯 高级探针与协议配置 (Uptime Kuma Alignment)
-- **探针协议支持**：
-  - **HTTP(s) 状态码监控**：支持配置接受的状态码范围（如 `200-299,301,302`）；
-  - **HTTP(s) 关键词匹配 (Keyword Match)**：响应 Body 中必须包含指定关键字；
-  - **TCP 端口连通性 & DNS 查询**。
-- **高级请求选项**：
-  - 自定义 HTTP 请求方法（`GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `HEAD`）；
-  - 自定义 Request Headers 与 Request Body 负载；
-  - **反向监控模式 (Upside Down Mode)**：将 200 OK 视为异常，非 200 视为正常；
-  - 失败重试次数（Max Retries）与超时时间阈值。
+## ✨ Key Features
+
+### 🍏 Apple Minimalist & Glassmorphism Aesthetic
+- **Humanist Geometric Typography**: Soft, rounded typography with *Plus Jakarta Sans* & *SF Pro Rounded* font stacks.
+- **Cupertino Glassmorphism**: Frosted glass backdrops (`backdrop-blur-xl`), subtle borders, and smooth micro-interactions.
+- **Strict Semantic Color Restraint**: Pure monochromatic canvas with color reserved strictly for status semantics (🟢 Operational, 🟡 Degraded, 🔴 Outage, ⚪ Maintenance).
+- **Zero-FOUC Dark/Light Modes**: Flawless system preference detection and `localStorage` persistence with zero flash of unstyled theme.
+- **Bilingual (i18n)**: One-click Chinese (`zh-CN`) and English (`en`) toggle with synchronized HTML `lang` attributes.
+
+### ⚡ 100% Serverless Edge Architecture
+- **Zero Server Costs & Maintenance**: Runs entirely on Cloudflare Workers, Workers KV, and Static Assets.
+- **Global Anycast Probing**: Probes your endpoints across 310+ global edge data centers every 2 minutes via Cron Triggers (`*/2 * * * *`).
+- **Real-Time Dynamic Telemetry**: Real-time SLA % calculation, live response latency, active endpoints count, and dynamic probe counters.
+
+### 🎯 Uptime Kuma Feature Parity
+- **Multi-Protocol Monitors**:
+  - **HTTP(s) Status Codes**: Configurable accepted status codes (e.g. `200-299, 301, 302`).
+  - **Keyword Matching**: Ensures response body contains critical keywords.
+  - **TCP Port Connectivity & DNS Queries**: Validates DoH responses and network endpoints.
+  - **Passive Push Heartbeats (Cron Monitors)**: Heartbeat monitor (`/api/push/:token`) for batch jobs, backup scripts, and internal daemons.
+  - **Inverted / Upside-Down Mode**: Triggers alerts if an endpoint becomes unexpectedly accessible.
+- **SSL / TLS Certificate Monitoring**:
+  - Real-time certificate validity tracking and expiration countdown badge (e.g. `SSL: 82d left`).
+- **Per-Service Alert Routing & Notification Channels**:
+  - Route alerts from critical services to SRE on-call channels, while low-priority services ping chat groups.
+  - Channels supported: **Email (Resend, SendGrid, SMTP)**, **Generic JSON Webhooks**, **Feishu / Lark**, **DingTalk**, **WeCom**, and **Telegram**.
+  - Rich variable templates: `{{SERVICE_NAME}}`, `{{STATUS}}`, `{{STATUS_EMOJI}}`, `{{TIME}}`, `{{LATENCY}}`, `{{HTTP_CODE}}`, `{{TARGET_URL}}`, `{{ERROR_MSG}}`.
+
+### 🛡️ Cloudflare Zero Trust (Access) Admin Portal
+- **macOS System Settings Style Admin Panel**: Manage services, custom categories, incident broadcasts, and alert channels.
+- **Edge Security**: Native real-path routing (`/admin`) designed to be intercepted and protected by Cloudflare Access (Email OTP, GitHub OAuth, Google, SAML) without hardcoded passwords in code.
+- **Data Management & Danger Zone**: One-click master reset or modular clearing of services, incidents, or notification channels.
+
+### 📊 Integrations & Developer Tools
+- **Prometheus Metrics**: Ready-to-scrape `/metrics` endpoint with Prometheus exposition format.
+- **SVG Status Badges**: Dynamic shields for GitHub READMEs (`/api/badge/:serviceId` and `/api/badge/overall`).
+- **JSON Status Feed**: Public programmatic feed at `/api/status`.
 
 ---
 
-### 3. 🍏 Apple 极简磨砂质感 UI
-- **柔和人文排版（Humanist Typography）**：全局采用 **Plus Jakarta Sans** 与 **SF Pro Rounded** 软性字体栈，字距微调收敛，阅读舒适不刺眼。
-- **无缝深浅色模式与持久化**：本地存储（`localStorage`）记忆偏好与防闪烁预加载（Zero-FOUC）。
-- **90 天胶囊时间线 + 下方动态气泡（Bottom Popover Bubble）**：悬浮任意一天药丸，在下方平滑展开该日精确可用率、响应耗时及维护/故障详情（绝无顶部遮挡与截断）。
-- **24 小时延迟折线图**：平滑贝塞尔曲线展示实时响应时间波动与统计（Min/Avg/Max）。
-- **全自定义分类管理**：自由创建、修改服务分类，支持专属图标、名称、顶栏短标签与描述。
-- **中英双语（i18n）**：顶栏一键切换简体中文与 English，动态同步 `<html lang>` 属性防止浏览器误报翻译。
+## 🛠️ Tech Stack
+
+- **Frontend**: React 19, TypeScript, Vite 8, Tailwind CSS v4 (`@tailwindcss/vite`), Lucide React.
+- **Backend / Edge**: Cloudflare Workers, Workers KV, Worker Cron Triggers, Single-Page Application (SPA) Static Assets.
+- **Security**: Cloudflare Zero Trust (Access).
 
 ---
 
-## 📁 目录结构
+## 🚀 Quick Start
 
-```
-apple-status-page/
-├── worker/
-│   ├── index.ts        # Cloudflare Worker 探测脚本 (Cron 定时并发探测 + RESTful API)
-│   └── types.ts        # 全局状态数据结构与类型定义
-├── src/
-│   ├── components/
-│   │   ├── Navbar.tsx            # Apple 磨砂顶部导航 (中英切换、深浅色、Admin入口)
-│   │   ├── HeroStatus.tsx        # 顶部全局运行状态大卡片 (同心呼吸状态环)
-│   │   ├── ServiceCard.tsx       # 服务状态卡片 (只读延迟徽章、折叠抽屉)
-│   │   ├── TimelineBar.tsx       # 30/60/90 天可用率状态条与下方 Popover 气泡
-│   │   ├── LatencySparkline.tsx  # 24 小时平滑延迟趋势图
-│   │   ├── IncidentSection.tsx   # 故障事件与维护历史记录
-│   │   ├── AdminPanel.tsx        # macOS 系统设置风格 Admin 管理面板
-│   │   └── Footer.tsx            # 页脚与 JSON Feed 链接
-│   ├── App.tsx                   # 状态管理、路由与中英双语协调
-│   ├── i18n.ts                   # 双语强类型字典模块 (ZH / EN)
-│   ├── mockData.ts               # 开箱即用的高质量演示数据源
-│   ├── index.css                 # Apple 磨砂设计系统样式与软性排版
-│   └── main.tsx
-├── wrangler.jsonc      # Cloudflare Worker 部署配置文件 (Cron + KV 绑定)
-├── package.json
-└── vite.config.ts
-```
+### 1. Prerequisites
+- Node.js `>= 18` and `pnpm`
+- A Cloudflare account and the [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (`npm i -g wrangler`)
 
----
-
-## 🚀 本地开发与运行
-
+### 2. Clone & Install
 ```bash
-# 进入项目目录
-cd apple-status-page
-
-# 安装依赖
+git clone https://github.com/wsyzxjn/FlareStatus.git
+cd FlareStatus
 pnpm install
+```
 
-# 启动本地开发服务
+### 3. Local Development
+```bash
 pnpm dev
 ```
-
-- 访问前台监控看板：`http://localhost:3001`
-- 访问管理控制台：`http://localhost:3001/#admin`（或点击顶栏右侧的「管理后台」按钮）
-
----
-
-## ☁️ 部署到 Cloudflare（0 服务器成本）
-
-### 1. 部署探测端 Worker (后端)
-
-1. 在 Cloudflare 控制台创建一个 KV 命名空间（例如 `STATUS_KV`）：
-   ```bash
-   npx wrangler kv namespace create STATUS_KV
-   ```
-2. 将返回的 `id` 填入 `wrangler.jsonc`：
-   ```jsonc
-   "kv_namespaces": [
-     {
-       "binding": "STATUS_KV",
-       "id": "<YOUR_KV_NAMESPACE_ID>"
-     }
-   ]
-   ```
-3. 部署 Worker：
-   ```bash
-   npx wrangler deploy
-   ```
-
-### 2. 部署前端看板 (Cloudflare Pages)
-
-1. 将代码推送到 GitHub / GitLab 仓库。
-2. 登录 **Cloudflare Dashboard** -> **Workers & Pages** -> **Create Application** -> **Pages**。
-3. 连接你的 Git 仓库，设置构建参数：
-   - **Framework preset**: `Vite`
-   - **Build command**: `pnpm build`
-   - **Build output directory**: `dist`
-4. 点击 **Save and Deploy**，几秒内即可在全球边缘 CDN 上线。
+- Open [http://localhost:3000/](http://localhost:3000/) for the public status page.
+- Open [http://localhost:3000/admin](http://localhost:3000/admin) for the Admin Console (built-in local dev mock API).
 
 ---
 
-## 🔒 1 分钟配置 Cloudflare Zero Trust (Access) 管理门禁
+## ☁️ Deployment (Cloudflare Workers + KV)
 
-无需在代码中写任何账号密码或登录表单，直接通过 Cloudflare 边缘门禁保护你的管理后台：
+### 1. Create a Cloudflare KV Namespace
+```bash
+npx wrangler kv namespace create STATUS_KV
+```
 
-1. 打开 **Cloudflare Dashboard** -> 左侧导航点击 **Zero Trust** -> 展开 **Access** -> **Applications**。
-2. 点击 **Add an Application** -> 选择 **Self-hosted（自托管）**。
-3. 配置应用规则：
-   - **Application name**: `Status Page Admin`
-   - **Application domain**: `status.yourdomain.com`（路径留空，或填 `admin*`）
-4. 在 **Policies（策略）** 步骤中：
-   - **Policy name**: `Admin Only`
+Copy the returned `id` into `wrangler.jsonc`:
+```jsonc
+{
+  "name": "flare-status",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "triggers": {
+    "crons": ["*/2 * * * *"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "STATUS_KV",
+      "id": "<YOUR_KV_NAMESPACE_ID>"
+    }
+  ]
+}
+```
+
+### 2. Build & Deploy
+```bash
+pnpm build
+npx wrangler deploy
+```
+
+### 3. Bind Your Custom Domain
+To bind a custom domain like `status.yourdomain.com`:
+Add a route in `wrangler.jsonc`:
+```jsonc
+"routes": [
+  {
+    "pattern": "status.yourdomain.com",
+    "custom_domain": true
+  }
+]
+```
+Then run `npx wrangler deploy`.
+
+---
+
+## 🔒 Cloudflare Zero Trust (Access) Guide
+
+Protect your `/admin*` routes with Cloudflare Access in under 2 minutes:
+
+1. In your **Cloudflare Dashboard**, navigate to **Zero Trust** -> **Access** -> **Applications**.
+2. Click **Add an Application** -> Select **Self-hosted**.
+3. Configure the Application:
+   - **Application Name**: `FlareStatus Admin`
+   - **Application Domain**: `status.yourdomain.com`
+   - **Path**: `admin*`
+4. Add an **Access Policy**:
+   - **Policy Name**: `Admin Only`
    - **Action**: `Allow`
-   - **Configure rules**:
-     - **Selector**: `Emails`
-     - **Value**: 填入你的管理员个人邮箱（如 `yourname@example.com`）或者 `GitHub Organization`。
-5. 点击 **Save Application** 完成。
+   - **Rule**: Include your email address, domain, or GitHub organization.
+5. Save the policy. All requests to `/admin*` will now be safely authenticated at Cloudflare's Edge before reaching your app!
+
+---
+
+## 📡 API Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :---: | :--- |
+| `/api/status` | `GET` | Public status feed (JSON) with real-time metrics and service states |
+| `/api/push/:token` | `GET/POST` | Passive push heartbeat check-in for cron jobs |
+| `/api/badge/:serviceId` | `GET` | SVG status badge for GitHub READMEs (`overall` or service ID) |
+| `/metrics` | `GET` | Prometheus metrics exposition format |
+| `/api/admin/data` | `GET` | Full admin configuration and active probes |
+| `/api/admin/services` | `POST` | Update and save monitored services |
+| `/api/admin/categories` | `POST` | Update custom categories |
+| `/api/admin/incidents` | `POST` | Publish or update incident notices |
+| `/api/admin/notifications` | `POST` | Save alert channels and templates |
+| `/api/admin/clear-data` | `POST` | Clear or reset KV database |
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

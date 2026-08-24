@@ -16,7 +16,7 @@ let localCategories: any[] = [
 let localIncidents: any[] = [];
 let localNotifications: any[] = [];
 let localSettings: any = {
-  siteTitle: 'Cloudflare Status',
+  siteTitle: 'FlareStatus',
   siteSubtitle: 'Real-time telemetry and edge health across all global locations',
   targetSla: 99.9,
   probeInterval: 2,

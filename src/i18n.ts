@@ -88,7 +88,7 @@ export interface Translations {
 
 export const DICTIONARY: Record<Language, Translations> = {
   zh: {
-    navTitle: 'Cloudflare 服务状态',
+    navTitle: 'FlareStatus',
     live: '运行中',
     probeEdge: '边缘测速',
     probingEdge: '测速中...',
@@ -167,7 +167,7 @@ export const DICTIONARY: Record<Language, Translations> = {
     lastSync: '上次同步',
   },
   en: {
-    navTitle: 'Cloudflare Status',
+    navTitle: 'FlareStatus',
     live: 'Live',
     probeEdge: 'Probe Edge',
     probingEdge: 'Probing Edge...',
