@@ -247,6 +247,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     ...INITIAL_STATUS_DATA.pastIncidents,
   ]);
   const [notifications, setNotifications] = useState<NotificationChannel[]>(INITIAL_NOTIFICATIONS);
+  const [adminEmail, setAdminEmail] = useState<string>('admin@edge.internal');
   const [settings, setSettings] = useState<GlobalSiteSettings>({
     siteTitle: 'Cloudflare Status',
     siteSubtitle: 'Real-time telemetry and edge health across all 310+ global locations',
@@ -254,6 +255,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     probeInterval: 2,
     historyRetentionDays: 90,
   });
+
+  // Fetch live admin data from /api/admin/data
+  React.useEffect(() => {
+    fetch('/api/admin/data')
+      .then((res) => res.json())
+      .then((data: any) => {
+        if (data.userEmail) setAdminEmail(data.userEmail);
+        if (data.services) setServices(data.services);
+        if (data.categories) setCategories(data.categories);
+        if (data.notifications) setNotifications(data.notifications);
+        if (data.settings) setSettings(data.settings);
+        if (data.incidents && data.incidents.length > 0) setIncidents(data.incidents);
+      })
+      .catch(() => {});
+  }, []);
 
   // Modal states for Endpoints
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
@@ -973,7 +989,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <div className="pt-2.5 mt-2 border-t border-black/[0.04] dark:border-white/[0.06] px-3 pb-1 text-[11px] text-[#86868b] space-y-0.5">
               <div className="font-semibold text-[#1d1d1f] dark:text-white">Cloudflare Access</div>
-              <div className="font-mono text-[10.5px] text-[#6e6e73] dark:text-[#a1a1a6] truncate">admin@edge.internal</div>
+              <div className="font-mono text-[10.5px] text-[#6e6e73] dark:text-[#a1a1a6] truncate">{adminEmail}</div>
             </div>
           </aside>
 

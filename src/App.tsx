@@ -20,7 +20,12 @@ import {
 } from 'lucide-react';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'public' | 'admin'>('public');
+  const [currentView, setCurrentView] = useState<'public' | 'admin'>(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname.startsWith('/admin') || window.location.hash === '#admin' ? 'admin' : 'public';
+    }
+    return 'public';
+  });
   const [statusData, setStatusData] = useState<SystemStatusData>(INITIAL_STATUS_DATA);
   
   // Persistent Dark Mode state
@@ -52,18 +57,19 @@ export function App() {
 
   const t = DICTIONARY[lang];
 
-  // Listen to hash changes (#admin)
+  // Listen to popstate (HTML5 History API) and hash changes
   useEffect(() => {
-    const handleHash = () => {
-      if (window.location.hash === '#admin') {
-        setCurrentView('admin');
-      } else {
-        setCurrentView('public');
-      }
+    const handleLocationChange = () => {
+      const isPathAdmin = window.location.pathname.startsWith('/admin') || window.location.hash === '#admin';
+      setCurrentView(isPathAdmin ? 'admin' : 'public');
     };
-    handleHash();
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    handleLocationChange();
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
   }, []);
 
   // Synchronize and persist dark mode class to html element
@@ -166,7 +172,7 @@ export function App() {
     return (
       <AdminPanel
         onBackToPublic={() => {
-          window.location.hash = '';
+          window.history.pushState({}, '', '/');
           setCurrentView('public');
         }}
         t={t}
@@ -217,7 +223,7 @@ export function App() {
         isRefreshing={isRefreshing}
         onRefresh={fetchLiveStatus}
         onOpenAdmin={() => {
-          window.location.hash = 'admin';
+          window.history.pushState({}, '', '/admin');
           setCurrentView('admin');
         }}
       />
