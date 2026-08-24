@@ -9,7 +9,7 @@ interface HeroStatusProps {
   t: Translations;
   overallUptime: number;
   avgLatency: number;
-  activeRegions: number;
+  totalEndpoints: number;
   totalProbes: number;
 }
 
@@ -18,7 +18,7 @@ export const HeroStatus: React.FC<HeroStatusProps> = ({
   t,
   overallUptime,
   avgLatency,
-  activeRegions,
+  totalEndpoints,
   totalProbes,
 }) => {
   const getStatusConfig = () => {
@@ -86,7 +86,7 @@ export const HeroStatus: React.FC<HeroStatusProps> = ({
 
         <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#f5f5f7] dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] flex items-center justify-between sm:justify-center gap-2">
           <span className="text-[#86868b] dark:text-[#a1a1a6] whitespace-nowrap">{t.metricPoPs}</span>
-          <span className="font-semibold text-[#1d1d1f] dark:text-white font-mono">{activeRegions}+</span>
+          <span className="font-semibold text-[#1d1d1f] dark:text-white font-mono">{totalEndpoints}</span>
         </div>
 
         <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#f5f5f7] dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] flex items-center justify-between sm:justify-center gap-2">

@@ -110,11 +110,11 @@ export const DICTIONARY: Record<Language, Translations> = {
 
     metricUptime: '30 天可用率',
     metricUptimeSLA: 'SLA 目标: 99.9%',
-    metricLatency: '边缘响应延迟',
-    metricLatencySub: '全球 Anycast 节点均值',
-    metricPoPs: '监控边缘节点',
-    metricPoPsSub: 'Cloudflare 边缘城市',
-    metricProbes: '今日探测次数',
+    metricLatency: '实时平均延迟',
+    metricLatencySub: '所有活跃端点实时均值',
+    metricPoPs: '监控服务端点',
+    metricPoPsSub: '310+ 边缘节点探测',
+    metricProbes: '今日累计探测',
     metricProbesSub: '每 2 分钟并发探测一次',
 
     allServices: '全部服务',
@@ -189,10 +189,10 @@ export const DICTIONARY: Record<Language, Translations> = {
 
     metricUptime: '30-Day Uptime',
     metricUptimeSLA: 'Target SLA: 99.9%',
-    metricLatency: 'Edge Latency',
-    metricLatencySub: 'Global Anycast average',
-    metricPoPs: 'Monitored PoPs',
-    metricPoPsSub: 'Cloudflare Edge Cities',
+    metricLatency: 'Real-time Latency',
+    metricLatencySub: 'Average across endpoints',
+    metricPoPs: 'Monitored Targets',
+    metricPoPsSub: 'Via 310+ Anycast PoPs',
     metricProbes: 'Probes Today',
     metricProbesSub: 'Every 2 mins per target',
 

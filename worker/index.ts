@@ -596,12 +596,21 @@ export default {
         };
       });
 
+      const allLiveServices = Object.values(categoriesMap).flat();
+      const totalLiveCount = allLiveServices.length;
+      const dynamicAvgLatency = totalLiveCount > 0
+        ? Math.round(allLiveServices.reduce((sum, s) => sum + s.currentLatency, 0) / totalLiveCount)
+        : 20;
+      const dynamicAvgUptime = totalLiveCount > 0
+        ? Number((allLiveServices.reduce((sum, s) => sum + s.uptime90d, 0) / totalLiveCount).toFixed(2))
+        : 100;
+
       const responsePayload: SystemStatusResponse = {
         systemStatus: 'operational',
         headline: 'All Systems Operational',
         lastUpdated: new Date().toISOString(),
-        overallUptime90d: 99.98,
-        avgLatencyMs: 22,
+        overallUptime90d: dynamicAvgUptime,
+        avgLatencyMs: dynamicAvgLatency,
         categories,
         activeIncidents: [],
         pastIncidents: [
