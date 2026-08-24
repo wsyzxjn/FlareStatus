@@ -172,8 +172,7 @@ export function App() {
     return (
       <AdminPanel
         onBackToPublic={() => {
-          window.history.pushState({}, '', '/');
-          setCurrentView('public');
+          window.location.href = '/';
         }}
         t={t}
         lang={lang}
@@ -223,8 +222,7 @@ export function App() {
         isRefreshing={isRefreshing}
         onRefresh={fetchLiveStatus}
         onOpenAdmin={() => {
-          window.history.pushState({}, '', '/admin');
-          setCurrentView('admin');
+          window.location.href = '/admin';
         }}
       />
 

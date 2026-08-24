@@ -850,43 +850,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     <div className="min-h-screen flex flex-col bg-[#f5f5f7] dark:bg-[#000000] text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors duration-200">
       {/* Compact Apple Header */}
       <header className="sticky top-0 z-40 w-full glass-nav backdrop-blur-xl border-b border-black/[0.06] dark:border-white/[0.08]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-5xl mx-auto px-3.5 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={onBackToPublic}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-white/10 hover:bg-neutral-100 dark:hover:bg-white/15 border border-black/[0.06] dark:border-white/10 text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-white/10 hover:bg-neutral-100 dark:hover:bg-white/15 border border-black/[0.06] dark:border-white/10 text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer flex-shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>{lang === 'zh' ? '返回看板' : 'Public'}</span>
             </button>
 
-            <span className="text-[#86868b] dark:text-[#6e6e73]">•</span>
+            <span className="text-[#86868b] dark:text-[#6e6e73] hidden sm:inline">•</span>
 
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-[15px] tracking-tight">
-                {lang === 'zh' ? '系统管理控制台' : 'System Admin Console'}
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="font-semibold text-sm sm:text-[15px] tracking-tight truncate">
+                {lang === 'zh' ? '系统管理控制台' : 'Admin Console'}
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-500/20">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[10.5px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-500/20 flex-shrink-0">
                 <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                Zero Trust Active
+                <span className="hidden sm:inline">Zero Trust Active</span>
+                <span className="sm:hidden">Active</span>
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
               className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-[#e5e5ea]/80 hover:bg-[#d1d1d6] dark:bg-white/10 dark:hover:bg-white/15 text-[#1d1d1f] dark:text-[#f5f5f7] transition-all active:scale-95 cursor-pointer"
               title={lang === 'zh' ? 'Switch to English' : '切换为中文'}
             >
               <Globe className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#a1a1a6]" />
-              <span>{lang === 'zh' ? 'English' : '中文'}</span>
+              <span className="text-[11px] sm:text-xs">{lang === 'zh' ? 'English' : '中文'}</span>
             </button>
 
             {/* Dark / Light Mode Toggle */}
             <button
               onClick={() => setDarkMode((prev) => !prev)}
-              className="p-2 rounded-full text-[#48484a] dark:text-[#d1d1d6] hover:bg-[#e5e5ea]/70 dark:hover:bg-white/10 transition-all active:scale-90 cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-full text-[#48484a] dark:text-[#d1d1d6] hover:bg-[#e5e5ea]/70 dark:hover:bg-white/10 transition-all active:scale-90 cursor-pointer"
               title={darkMode ? (lang === 'zh' ? '切换为浅色模式' : 'Switch to Light Mode') : (lang === 'zh' ? '切换为深色模式' : 'Switch to Dark Mode')}
               aria-label="Toggle theme"
             >
@@ -904,25 +905,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* Main Layout (Max-w-5xl, Balanced Compact macOS Proportion) */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-          {/* Left Sidebar (macOS Settings Style) */}
-          <aside className="md:col-span-4 lg:col-span-3.5 space-y-1 p-2 rounded-2xl glass-panel border border-black/[0.05] dark:border-white/[0.06]">
-            <div className="px-3 py-1.5 text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">
+      {/* Main Layout (Max-w-5xl, Responsive Compact macOS Layout) */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-3.5 sm:px-6 py-4 sm:py-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-5 items-start">
+          {/* Sidebar (Responsive horizontal scroll on mobile, vertical on desktop) */}
+          <aside className="md:col-span-4 lg:col-span-3.5 flex md:flex-col overflow-x-auto no-scrollbar gap-1 sm:gap-1.5 p-1.5 sm:p-2 rounded-2xl glass-panel border border-black/[0.05] dark:border-white/[0.06] w-full">
+            <div className="hidden md:block px-3 py-1.5 text-[11px] font-semibold text-[#86868b] uppercase tracking-wider">
               {lang === 'zh' ? '管理导航' : 'Settings'}
             </div>
 
             <button
               onClick={() => setActiveTab('endpoints')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 md:w-full ${
                 activeTab === 'endpoints'
                   ? 'bg-white dark:bg-white/20 text-[#1d1d1f] dark:text-white shadow-sm font-semibold'
                   : 'text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#a1a1a6] dark:hover:text-white'
               }`}
             >
               <Server className="w-4 h-4 stroke-[1.75]" />
-              <span>{lang === 'zh' ? '监控目标端点' : 'Endpoints'}</span>
+              <span>{lang === 'zh' ? '监控端点' : 'Endpoints'}</span>
               <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md bg-black/[0.04] dark:bg-white/10 font-mono font-medium">
                 {services.length}
               </span>
@@ -930,14 +931,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <button
               onClick={() => setActiveTab('categories')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 md:w-full ${
                 activeTab === 'categories'
                   ? 'bg-white dark:bg-white/20 text-[#1d1d1f] dark:text-white shadow-sm font-semibold'
                   : 'text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#a1a1a6] dark:hover:text-white'
               }`}
             >
               <FolderTree className="w-4 h-4 stroke-[1.75]" />
-              <span>{lang === 'zh' ? '自定义分类管理' : 'Categories'}</span>
+              <span>{lang === 'zh' ? '分类管理' : 'Categories'}</span>
               <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md bg-black/[0.04] dark:bg-white/10 font-mono font-medium">
                 {categories.length}
               </span>
@@ -945,14 +946,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <button
               onClick={() => setActiveTab('incidents')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 md:w-full ${
                 activeTab === 'incidents'
                   ? 'bg-white dark:bg-white/20 text-[#1d1d1f] dark:text-white shadow-sm font-semibold'
                   : 'text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#a1a1a6] dark:hover:text-white'
               }`}
             >
               <AlertTriangle className="w-4 h-4 stroke-[1.75]" />
-              <span>{lang === 'zh' ? '事件与维护通告' : 'Incidents'}</span>
+              <span>{lang === 'zh' ? '事件通告' : 'Incidents'}</span>
               {activeIncidentsList.length > 0 && (
                 <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 font-mono font-semibold">
                   {activeIncidentsList.length}
@@ -962,14 +963,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 md:w-full ${
                 activeTab === 'notifications'
                   ? 'bg-white dark:bg-white/20 text-[#1d1d1f] dark:text-white shadow-sm font-semibold'
                   : 'text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#a1a1a6] dark:hover:text-white'
               }`}
             >
               <Bell className="w-4 h-4 stroke-[1.75]" />
-              <span>{lang === 'zh' ? '告警通道与模板' : 'Alerts & Templates'}</span>
+              <span>{lang === 'zh' ? '告警与模板' : 'Alerts'}</span>
               <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 font-mono font-semibold">
                 {notifications.filter((n) => n.enabled).length}
               </span>
@@ -977,17 +978,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <button
               onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 md:w-full ${
                 activeTab === 'settings'
                   ? 'bg-white dark:bg-white/20 text-[#1d1d1f] dark:text-white shadow-sm font-semibold'
                   : 'text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#a1a1a6] dark:hover:text-white'
               }`}
             >
               <Sliders className="w-4 h-4 stroke-[1.75]" />
-              <span>{lang === 'zh' ? '全局系统设置' : 'Global Settings'}</span>
+              <span>{lang === 'zh' ? '全局设置' : 'Settings'}</span>
             </button>
 
-            <div className="pt-2.5 mt-2 border-t border-black/[0.04] dark:border-white/[0.06] px-3 pb-1 text-[11px] text-[#86868b] space-y-0.5">
+            <div className="hidden md:block pt-2.5 mt-2 border-t border-black/[0.04] dark:border-white/[0.06] px-3 pb-1 text-[11px] text-[#86868b] space-y-0.5">
               <div className="font-semibold text-[#1d1d1f] dark:text-white">Cloudflare Access</div>
               <div className="font-mono text-[10.5px] text-[#6e6e73] dark:text-[#a1a1a6] truncate">{adminEmail}</div>
             </div>

@@ -74,7 +74,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
   return (
     <div className="relative w-full pt-1 select-none">
       {/* Pills Container */}
-      <div className="flex items-center gap-[2px] sm:gap-[2.5px] h-6 py-0.5 w-full">
+      <div className="flex items-center gap-[1.5px] sm:gap-[2.5px] h-6 py-0.5 w-full overflow-hidden">
         {displayedHistory.map((item, idx) => {
           const leftPercent = ((idx + 0.5) / displayedHistory.length) * 100;
 
@@ -82,6 +82,13 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
             <div
               key={item.date || idx}
               onMouseEnter={() =>
+                setHoveredDay({
+                  day: item,
+                  index: idx,
+                  leftPercent,
+                })
+              }
+              onTouchStart={() =>
                 setHoveredDay({
                   day: item,
                   index: idx,
@@ -97,33 +104,33 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
         })}
       </div>
 
-      {/* Floating Popover Bubble Below Hovered Pill */}
+      {/* Floating Popover Bubble Below Hovered Pill (Responsive Bound) */}
       {hoveredDay && (
         <div
           className="absolute top-[32px] z-50 pointer-events-none transition-all duration-100 ease-out"
           style={{
             left: `${hoveredDay.leftPercent}%`,
             transform: `translateX(-${Math.min(
-              85,
-              Math.max(15, hoveredDay.leftPercent)
+              80,
+              Math.max(20, hoveredDay.leftPercent)
             )}%)`,
           }}
         >
-          <div className="relative p-3 rounded-2xl bg-white dark:bg-[#1c1c1e] text-xs text-[#1d1d1f] dark:text-white shadow-[0_12px_36px_rgba(0,0,0,0.16)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.85)] border border-black/[0.08] dark:border-white/10 min-w-[185px] max-w-[280px]">
+          <div className="relative p-3 rounded-2xl bg-white dark:bg-[#1c1c1e] text-xs text-[#1d1d1f] dark:text-white shadow-[0_12px_36px_rgba(0,0,0,0.16)] dark:shadow-[0_12px_36px_rgba(0,0,0,0.85)] border border-black/[0.08] dark:border-white/10 min-w-[170px] max-w-[calc(100vw-2.5rem)] sm:max-w-[280px]">
             {/* Upward Pointer Arrow */}
             <div
               className="absolute -top-1 w-2.5 h-2.5 bg-white dark:bg-[#1c1c1e] border-l border-t border-black/[0.08] dark:border-white/10 transform rotate-45"
               style={{
                 left: `${Math.min(
-                  85,
-                  Math.max(15, hoveredDay.leftPercent)
+                  80,
+                  Math.max(20, hoveredDay.leftPercent)
                 )}%`,
                 transform: 'translateX(-50%) rotate(45deg)',
               }}
             />
 
             {/* Header: Date + Status Badge */}
-            <div className="flex items-center justify-between gap-3 font-semibold pb-1.5 border-b border-black/[0.05] dark:border-white/10">
+            <div className="flex items-center justify-between gap-2.5 font-semibold pb-1.5 border-b border-black/[0.05] dark:border-white/10">
               <span className="font-mono text-[11px] text-[#1d1d1f] dark:text-white font-semibold">
                 {hoveredDay.day.date}
               </span>
@@ -174,11 +181,11 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
       )}
 
       {/* Clean Static Footer Row */}
-      <div className="flex items-center justify-between text-[11px] font-medium text-[#86868b] dark:text-[#6e6e73] mt-1.5 px-0.5">
+      <div className="flex items-center justify-between text-[10.5px] sm:text-[11px] font-medium text-[#86868b] dark:text-[#6e6e73] mt-1.5 px-0.5">
         <span>
           {daysCount} {t.daysAgo}
         </span>
-        <span className="text-[#6e6e73] dark:text-[#86868b]">
+        <span className="text-[#6e6e73] dark:text-[#86868b] truncate max-w-[120px] sm:max-w-none text-center">
           {displayedHistory.filter((d) => d.status === 'operational').length ===
           displayedHistory.length
             ? t.fullOperational
