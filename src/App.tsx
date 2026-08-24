@@ -51,7 +51,7 @@ export function App() {
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [timelineDays, setTimelineDays] = useState<number>(30);
+  const [timelineDays, setTimelineDays] = useState<number>(1);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 

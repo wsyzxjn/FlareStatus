@@ -10,7 +10,7 @@ interface TimelineBarProps {
 
 export const TimelineBar: React.FC<TimelineBarProps> = ({
   history,
-  daysCount = 30,
+  daysCount = 1,
   t,
 }) => {
   const [hoveredDay, setHoveredDay] = useState<{
