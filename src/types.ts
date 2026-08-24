@@ -1,4 +1,4 @@
-export type ServiceStatus = 'operational' | 'degraded' | 'outage' | 'maintenance';
+export type ServiceStatus = 'operational' | 'degraded' | 'outage' | 'maintenance' | 'no_data';
 
 export interface LatencyPoint {
   time: string;
@@ -80,6 +80,7 @@ export interface ServiceItem {
   
   region?: string;
   description?: string;
+  createdAt?: string;
 }
 
 export interface ServiceLiveState {
@@ -98,6 +99,7 @@ export interface ServiceLiveState {
   sslInfo?: SslCertInfo;
   lastHeartbeatPing?: string;
   pushToken?: string;
+  createdAt?: string;
   recentLatencies: LatencyPoint[];
   history90d: DayHistory[];
 }

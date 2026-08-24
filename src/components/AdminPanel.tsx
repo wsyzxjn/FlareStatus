@@ -396,6 +396,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         notificationChannelIds: serviceFormData.notificationChannelIds || [],
         region: serviceFormData.region || 'Global Anycast',
         description: serviceFormData.description || '',
+        createdAt: serviceFormData.createdAt || new Date().toISOString(),
       };
       updated = [...services, newSvc];
     }

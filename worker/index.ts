@@ -44,37 +44,45 @@ interface Env {
   ASSETS?: Fetcher;
 }
 
-// Generate clean 30-day baseline for newly added services
-function generateCleanHistory(baseLatency: number): DayHistory[] {
+// Generate real service history respecting creation time
+function generateServiceHistory(baseLatency: number, createdAtStr?: string): DayHistory[] {
   const days: DayHistory[] = [];
   const now = new Date();
+  const createdTime = createdAtStr ? new Date(createdAtStr).getTime() : Date.now();
+
   for (let i = 29; i >= 0; i--) {
     const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const dateStr = d.toISOString().split('T')[0];
+    const isBeforeCreation = d.getTime() + 24 * 60 * 60 * 1000 < createdTime;
     
     days.push({
       date: dateStr,
-      status: 'operational',
-      uptime: 100,
-      avgLatency: baseLatency,
+      status: isBeforeCreation ? 'no_data' : 'operational',
+      uptime: isBeforeCreation ? 100 : 100,
+      avgLatency: isBeforeCreation ? 0 : baseLatency,
       incidentsCount: 0,
+      note: isBeforeCreation ? '该日期服务尚未添加 (未监控)' : undefined,
     });
   }
   return days;
 }
 
-function generateClean24hLatencies(baseLatency: number): LatencyPoint[] {
+function generateService24hLatencies(baseLatency: number, createdAtStr?: string): LatencyPoint[] {
   const points: LatencyPoint[] = [];
   const now = Date.now();
+  const createdTime = createdAtStr ? new Date(createdAtStr).getTime() : Date.now();
+
   for (let i = 24; i >= 0; i--) {
-    const timeStr = new Date(now - i * 60 * 60 * 1000).toLocaleTimeString([], {
+    const pointTime = now - i * 60 * 60 * 1000;
+    const timeStr = new Date(pointTime).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     });
+    const isBeforeCreation = pointTime < createdTime - 30 * 60 * 1000;
     points.push({
       time: timeStr,
-      latency: Math.max(1, baseLatency),
+      latency: isBeforeCreation ? 0 : Math.max(1, baseLatency),
     });
   }
   return points;
@@ -405,6 +413,7 @@ export default {
         const status: ServiceStatus = probe?.status || 'operational';
         const latency = probe?.latency || 18;
 
+        const createdTimestamp = item.createdAt || (item.id.startsWith('svc-') ? new Date(Number(item.id.replace('svc-', ''))).toISOString() : new Date().toISOString());
         const liveState: ServiceLiveState = {
           id: item.id,
           name: item.name,
@@ -415,13 +424,14 @@ export default {
           currentLatency: latency,
           uptime90d: 100,
           lastChecked: probe?.timestamp || new Date().toISOString(),
-          region: item.region || 'Anycast Global',
+          region: item.region || 'Global Anycast',
           endpointUrl: item.url,
           description: item.description,
           lastHeartbeatPing: item.lastHeartbeatPing,
           pushToken: item.pushToken,
-          recentLatencies: generateClean24hLatencies(latency),
-          history90d: generateCleanHistory(latency),
+          createdAt: createdTimestamp,
+          recentLatencies: generateService24hLatencies(latency, createdTimestamp),
+          history90d: generateServiceHistory(latency, createdTimestamp),
         };
 
         if (!categoriesMap[item.categoryId]) {

@@ -161,7 +161,14 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
         {/* Timeline Bar Strip */}
         <div>
-          <TimelineBar history={service.history90d || (service as any).history30d || (service as any).history || []} daysCount={timelineDays} t={t} />
+          <TimelineBar
+            history={service.history90d || (service as any).history30d || (service as any).history || []}
+            daysCount={timelineDays}
+            t={t}
+            serviceCreatedAt={service.createdAt || service.id}
+            serviceStatus={service.status}
+            currentLatency={service.currentLatency}
+          />
         </div>
       </div>
 

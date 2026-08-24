@@ -1,60 +1,102 @@
 import React, { useState } from 'react';
-import { DayHistory } from '../types';
+import { DayHistory, ServiceStatus } from '../types';
 import { Translations } from '../i18n';
 
 interface TimelineBarProps {
-  history: DayHistory[];
+  history?: DayHistory[];
   daysCount?: number; // 1, 7, or 30
   t: Translations;
+  serviceCreatedAt?: string;
+  serviceStatus?: ServiceStatus;
+  currentLatency?: number;
 }
 
 export const TimelineBar: React.FC<TimelineBarProps> = ({
   history = [],
   daysCount = 1,
   t,
+  serviceCreatedAt,
+  serviceStatus = 'operational',
+  currentLatency = 20,
 }) => {
-  const safeHistory = Array.isArray(history) && history.length > 0 ? history : [];
   const [hoveredDay, setHoveredDay] = useState<{
     day: DayHistory;
     index: number;
     leftPercent: number;
   } | null>(null);
 
-  // When daysCount === 1, generate 24 hourly segments for today
+  // Parse service creation timestamp
+  let createdAtMs = Date.now();
+  if (serviceCreatedAt) {
+    if (typeof serviceCreatedAt === 'string' && serviceCreatedAt.startsWith('svc-')) {
+      const num = Number(serviceCreatedAt.replace('svc-', ''));
+      if (!isNaN(num) && num > 1000000000000) createdAtMs = num;
+    } else {
+      const parsed = new Date(serviceCreatedAt).getTime();
+      if (!isNaN(parsed) && parsed > 0) createdAtMs = parsed;
+    }
+  }
+
+  const now = Date.now();
   let displayedItems: (DayHistory & { label?: string })[] = [];
 
   if (daysCount === 1) {
-    const todayItem = safeHistory.length > 0 ? safeHistory[safeHistory.length - 1] : {
-      date: new Date().toISOString().split('T')[0],
-      status: 'operational' as const,
-      uptime: 100,
-      avgLatency: 20,
-    };
-
-    const nowHour = new Date().getHours();
+    // 24 hourly bars for the past 24 hours
     for (let h = 23; h >= 0; h--) {
-      const hourVal = (nowHour - h + 24) % 24;
-      const hourStr = `${hourVal.toString().padStart(2, '0')}:00`;
-      displayedItems.push({
-        date: `${todayItem.date} ${hourStr}`,
-        status: todayItem.status,
-        uptime: todayItem.uptime,
-        avgLatency: Math.max(12, todayItem.avgLatency + Math.round(Math.sin(h) * 4)),
-        label: hourStr,
+      const segmentTime = now - h * 60 * 60 * 1000;
+      const hourStr = new Date(segmentTime).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
       });
+      const dateStr = new Date(segmentTime).toISOString().split('T')[0];
+
+      // If this hour is BEFORE the service was created (give a 15-minute grace window for creation hour)
+      const isBeforeCreation = segmentTime < createdAtMs - 15 * 60 * 1000;
+
+      if (isBeforeCreation) {
+        displayedItems.push({
+          date: `${dateStr} ${hourStr}`,
+          status: 'no_data',
+          uptime: 100,
+          avgLatency: 0,
+          label: hourStr,
+          note: '该时段服务尚未创建 (未监控)',
+        });
+      } else {
+        displayedItems.push({
+          date: `${dateStr} ${hourStr}`,
+          status: serviceStatus,
+          uptime: 100,
+          avgLatency: currentLatency,
+          label: hourStr,
+        });
+      }
     }
   } else {
-    if (safeHistory.length > 0) {
-      displayedItems = safeHistory.slice(-daysCount);
-    } else {
-      const now = new Date();
-      for (let i = daysCount - 1; i >= 0; i--) {
-        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    // 7 or 30 daily bars
+    const safeHistory = Array.isArray(history) && history.length > 0 ? history : [];
+    for (let i = daysCount - 1; i >= 0; i--) {
+      const dayTime = now - i * 24 * 60 * 60 * 1000;
+      const dateStr = new Date(dayTime).toISOString().split('T')[0];
+      const isBeforeCreation = dayTime + 24 * 60 * 60 * 1000 < createdAtMs;
+
+      if (isBeforeCreation) {
         displayedItems.push({
-          date: d.toISOString().split('T')[0],
-          status: 'operational' as const,
+          date: dateStr,
+          status: 'no_data',
           uptime: 100,
-          avgLatency: 20,
+          avgLatency: 0,
+          note: '该日期服务尚未添加 (未监控)',
+        });
+      } else {
+        const matched = safeHistory.find((h) => h.date === dateStr);
+        displayedItems.push({
+          date: dateStr,
+          status: matched?.status || serviceStatus,
+          uptime: matched?.uptime ?? 100,
+          avgLatency: matched?.avgLatency || currentLatency,
+          note: matched?.note,
         });
       }
     }
@@ -70,8 +112,9 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
         return 'bg-[#ff3b30] hover:bg-[#ff453a] dark:bg-[#ff453a] dark:hover:bg-[#ff453a]';
       case 'maintenance':
         return 'bg-[#86868b] hover:bg-[#6e6e73] dark:bg-[#636366] dark:hover:bg-[#8e8e93]';
+      case 'no_data':
       default:
-        return 'bg-[#e5e5ea] dark:bg-[#3a3a3c]';
+        return 'bg-[#e5e5ea]/75 dark:bg-white/[0.12] hover:bg-[#d1d1d6] dark:hover:bg-white/20';
     }
   };
 
@@ -99,15 +142,29 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
           label: t.statusOutage,
         };
       case 'maintenance':
-      default:
         return {
           bg: 'bg-neutral-100 text-neutral-700 dark:bg-white/10 dark:text-neutral-300',
           dot: 'bg-[#86868b]',
           noteColor: 'text-[#6e6e73] dark:text-[#a1a1a6]',
           label: t.statusMaintenance,
         };
+      case 'no_data':
+      default:
+        return {
+          bg: 'bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300',
+          dot: 'bg-neutral-400 dark:bg-neutral-500',
+          noteColor: 'text-[#86868b] dark:text-[#a1a1a6]',
+          label: '未监控',
+        };
     }
   };
+
+  const monitoredItems = displayedItems.filter((d) => d.status !== 'no_data');
+  const isAllMonitored = monitoredItems.length === displayedItems.length;
+  const operationalCount = monitoredItems.filter((d) => d.status === 'operational').length;
+  const uptimeRateVal = monitoredItems.length > 0
+    ? ((operationalCount / monitoredItems.length) * 100).toFixed(1)
+    : '100.0';
 
   return (
     <div className="relative w-full pt-1 select-none">
@@ -188,21 +245,29 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
 
             {/* Metrics List */}
             <div className="pt-2 space-y-1 text-[11px] text-[#6e6e73] dark:text-[#a1a1a6]">
-              <div className="flex justify-between">
-                <span>{t.dailyUptime}:</span>
-                <span className="font-semibold text-[#1d1d1f] dark:text-white">
-                  {hoveredDay.day.uptime}%
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>{t.avgLatency}:</span>
-                <span className="font-semibold text-[#1d1d1f] dark:text-white">
-                  {hoveredDay.day.avgLatency} ms
-                </span>
-              </div>
+              {hoveredDay.day.status === 'no_data' ? (
+                <div className="text-[11px] text-[#86868b] dark:text-[#a1a1a6] py-0.5 italic">
+                  {hoveredDay.day.note || '该时段服务尚未创建'}
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span>{t.dailyUptime}:</span>
+                    <span className="font-semibold text-[#1d1d1f] dark:text-white">
+                      {hoveredDay.day.uptime}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>{t.avgLatency}:</span>
+                    <span className="font-semibold text-[#1d1d1f] dark:text-white">
+                      {hoveredDay.day.avgLatency} ms
+                    </span>
+                  </div>
+                </>
+              )}
 
               {/* Expanded Description Inside the Bubble */}
-              {hoveredDay.day.note && (
+              {hoveredDay.day.note && hoveredDay.day.status !== 'no_data' && (
                 <div className="pt-2 mt-1.5 border-t border-black/[0.05] dark:border-white/10">
                   <p
                     className={`text-[11px] leading-relaxed ${
@@ -223,16 +288,12 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
         <span>
           {daysCount === 1 ? `24 ${t.hoursAgo}` : `${daysCount} ${t.daysAgo}`}
         </span>
-        <span className="text-[#6e6e73] dark:text-[#86868b] truncate max-w-[130px] sm:max-w-none text-center font-mono">
-          {displayedItems.filter((d) => d.status === 'operational').length ===
-          displayedItems.length
-            ? t.fullOperational
-            : `${(
-                (displayedItems.filter((d) => d.status === 'operational')
-                  .length /
-                  displayedItems.length) *
-                100
-              ).toFixed(1)}% ${t.uptimeRate}`}
+        <span className="text-[#6e6e73] dark:text-[#86868b] truncate max-w-[150px] sm:max-w-none text-center font-mono">
+          {monitoredItems.length === 0
+            ? '暂无监控数据'
+            : isAllMonitored
+            ? (operationalCount === monitoredItems.length ? t.fullOperational : `${uptimeRateVal}% ${t.uptimeRate}`)
+            : (operationalCount === monitoredItems.length ? `创建至今 ${t.fullOperational}` : `${uptimeRateVal}% ${t.uptimeRate} (创建至今)`)}
         </span>
         <span>{daysCount === 1 ? t.now : t.today}</span>
       </div>
