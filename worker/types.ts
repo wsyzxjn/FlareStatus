@@ -22,8 +22,16 @@ export interface CategoryConfig {
   icon?: 'server' | 'globe' | 'database' | 'cpu' | 'cloud' | 'shield';
 }
 
-export type MonitorType = 'http' | 'keyword' | 'json_query' | 'port' | 'dns';
+export type MonitorType = 'http' | 'keyword' | 'json_query' | 'port' | 'dns' | 'push';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+
+export interface SslCertInfo {
+  valid: boolean;
+  daysRemaining?: number;
+  validTo?: string;
+  issuer?: string;
+  expiresSoon?: boolean; // true if < 30 days
+}
 
 export interface ServiceItem {
   id: string;
@@ -33,33 +41,41 @@ export interface ServiceItem {
   enabled: boolean;
   
   // Uptime Kuma Monitor Types & Protocols
-  monitorType?: MonitorType; // http, keyword, json_query, port, dns
+  monitorType?: MonitorType;
   method?: HttpMethod;
-  expectedStatus?: number; // e.g. 200 or 200-299
-  acceptedStatusCodes?: string; // e.g. "200-299,301,302"
+  expectedStatus?: number;
+  acceptedStatusCodes?: string;
+  
+  // SSL Certificate Expiry Alert
+  checkSslCert?: boolean; // auto monitor SSL expiration
+  sslExpiryDaysWarning?: number; // default 30 days
+  
+  // Passive Heartbeat / Push Monitor (Dead Man's Switch)
+  pushToken?: string;
+  heartbeatInterval?: number; // expected ping interval in minutes (e.g. 60)
+  lastHeartbeatPing?: string; // ISO string of last received push
   
   // Keyword & JSON Query Matchers
-  keywordMatch?: string; // string that must be present in response
-  jsonPath?: string; // e.g. "status.code"
-  expectedJsonValue?: string; // e.g. "OK"
+  keywordMatch?: string;
+  jsonPath?: string;
+  expectedJsonValue?: string;
   
   // Advanced HTTP Request Options
-  headers?: string; // custom headers in Key: Value format
-  body?: string; // JSON or raw request body
+  headers?: string;
+  body?: string;
   authMethod?: 'none' | 'basic' | 'bearer';
   basicUser?: string;
   basicPass?: string;
   bearerToken?: string;
   ignoreTls?: boolean;
-  upsideDown?: boolean; // Invert status: 200 is down, error is up
+  upsideDown?: boolean;
   
   // Retries & Timing
-  timeout?: number; // seconds (default 8)
-  maxRetries?: number; // retry count before marking as down (default 1)
-  retryInterval?: number; // seconds between retries
+  timeout?: number;
+  maxRetries?: number;
+  retryInterval?: number;
   
-  // Per-Service Alert Routing (Uptime Kuma Alignment)
-  // Specific notification channels bound to this service. If empty, all default channels apply.
+  // Per-Service Alert Routing
   notificationChannelIds?: string[];
   
   region?: string;
@@ -72,12 +88,16 @@ export interface ServiceLiveState {
   categoryId: string;
   categoryName?: string;
   status: ServiceStatus;
+  monitorType?: MonitorType;
   currentLatency: number;
   uptime90d: number;
   lastChecked: string;
   region: string;
   endpointUrl?: string;
   description?: string;
+  sslInfo?: SslCertInfo;
+  lastHeartbeatPing?: string;
+  pushToken?: string;
   recentLatencies: LatencyPoint[];
   history90d: DayHistory[];
 }
@@ -100,23 +120,23 @@ export interface Incident {
   updates: IncidentUpdate[];
 }
 
-export type NotificationType = 'email' | 'webhook' | 'feishu' | 'telegram' | 'dingtalk' | 'wecom' | 'bark';
+export type NotificationType = 'email' | 'webhook' | 'feishu' | 'telegram' | 'dingtalk' | 'wecom' | 'bark' | 'slack' | 'discord' | 'pushover';
 
 export interface NotificationChannel {
   id: string;
   type: NotificationType;
   name: string;
   enabled: boolean;
-  defaultEnabled?: boolean; // applies to all services unless overridden
+  defaultEnabled?: boolean;
   
-  // Trigger Condition Rules (Uptime Kuma Feature Alignment)
-  notifyOnDown?: boolean; // trigger on failure
-  notifyOnUp?: boolean; // trigger on recovery
-  notifyOnDegraded?: boolean; // trigger on high latency / degradation
-  minFailuresBeforeAlert?: number; // e.g. alert only after 2 consecutive failures
+  // Trigger Condition Rules
+  notifyOnDown?: boolean;
+  notifyOnUp?: boolean;
+  notifyOnDegraded?: boolean;
+  notifyOnSslExpiry?: boolean; // alert when certificate is expiring
+  minFailuresBeforeAlert?: number;
   
   // Custom Alert Message & Payload Template
-  // Variables: {{SERVICE_NAME}}, {{STATUS}}, {{STATUS_EMOJI}}, {{TIME}}, {{LATENCY}}, {{HTTP_CODE}}, {{TARGET_URL}}, {{ERROR_MSG}}
   customTitleTemplate?: string;
   customBodyTemplate?: string;
   
@@ -138,7 +158,7 @@ export interface GlobalSiteSettings {
   siteTitle: string;
   siteSubtitle: string;
   targetSla: number;
-  probeInterval: number; // in minutes
+  probeInterval: number;
   historyRetentionDays: number;
   fontFamily?: 'jakarta' | 'sf-rounded' | 'system';
 }

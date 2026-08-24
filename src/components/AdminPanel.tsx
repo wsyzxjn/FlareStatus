@@ -1550,6 +1550,59 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   </div>
 
+                  <div className="pt-4 border-t border-black/[0.05] dark:border-white/10 space-y-3">
+                    <div className="font-semibold text-xs text-[#1d1d1f] dark:text-white">
+                      {lang === 'zh' ? '生态与第三方监控集成 (Integrations & APIs)' : 'Integrations & External APIs'}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.04] dark:border-white/[0.06] space-y-1">
+                        <div className="text-[11px] text-[#86868b] font-medium">README 状态徽章 (SVG Badge)</div>
+                        <div className="font-mono text-xs text-[#1d1d1f] dark:text-white truncate">/api/badge/overall</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`![Status](https://${window.location.host}/api/badge/overall)`);
+                            alert(lang === 'zh' ? '已复制 Badge Markdown' : 'Copied Badge Markdown');
+                          }}
+                          className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                        >
+                          {lang === 'zh' ? '复制 Markdown 徽章' : 'Copy Badge'}
+                        </button>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.04] dark:border-white/[0.06] space-y-1">
+                        <div className="text-[11px] text-[#86868b] font-medium">Prometheus 抓取端点</div>
+                        <div className="font-mono text-xs text-[#1d1d1f] dark:text-white truncate">/metrics</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`https://${window.location.host}/metrics`);
+                            alert(lang === 'zh' ? '已复制 Metrics URL' : 'Copied Metrics URL');
+                          }}
+                          className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                        >
+                          {lang === 'zh' ? '复制 Metrics URL' : 'Copy Metrics URL'}
+                        </button>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.04] dark:border-white/[0.06] space-y-1">
+                        <div className="text-[11px] text-[#86868b] font-medium">公开状态 JSON Feed</div>
+                        <div className="font-mono text-xs text-[#1d1d1f] dark:text-white truncate">/api/status</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`https://${window.location.host}/api/status`);
+                            alert(lang === 'zh' ? '已复制 Status API URL' : 'Copied Status API URL');
+                          }}
+                          className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                        >
+                          {lang === 'zh' ? '复制 Status API' : 'Copy Status Feed'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="pt-3 border-t border-black/[0.04] dark:border-white/10 flex justify-end">
                     <button
                       onClick={showSavedNotice}
@@ -1912,29 +1965,83 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </label>
                       <select
                         value={serviceFormData.monitorType || 'http'}
-                        onChange={(e) => setServiceFormData({ ...serviceFormData, monitorType: e.target.value as MonitorType })}
+                        onChange={(e) => {
+                          const val = e.target.value as MonitorType;
+                          const token = val === 'push' ? (serviceFormData.pushToken || 'push_' + Math.random().toString(36).substring(2, 10)) : serviceFormData.pushToken;
+                          setServiceFormData({
+                            ...serviceFormData,
+                            monitorType: val,
+                            pushToken: token,
+                            url: val === 'push' ? `push://${token}` : (serviceFormData.url && !serviceFormData.url.startsWith('push://') ? serviceFormData.url : 'https://'),
+                          });
+                        }}
                         className="w-full px-3 py-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/10 text-xs text-[#1d1d1f] dark:text-white focus:outline-none"
                       >
                         <option value="http">HTTP(s) 状态码监控</option>
                         <option value="keyword">HTTP(s) 关键字匹配</option>
                         <option value="port">TCP 端口连通性</option>
                         <option value="dns">DNS 记录查询</option>
+                        <option value="push">📡 被动心跳上报 (Push / Cron)</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="font-medium text-xs text-[#1d1d1f] dark:text-white">
-                      {lang === 'zh' ? '描述与备注' : 'Description'}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Global Anycast Ingress & Rate Limiting"
-                      value={serviceFormData.description || ''}
-                      onChange={(e) => setServiceFormData({ ...serviceFormData, description: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/10 text-xs text-[#1d1d1f] dark:text-white focus:outline-none"
-                    />
-                  </div>
+                  {serviceFormData.monitorType === 'push' ? (
+                    <div className="p-3.5 rounded-xl bg-purple-50/60 dark:bg-purple-500/10 border border-purple-200/60 dark:border-purple-500/20 space-y-2.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-purple-900 dark:text-purple-300">
+                          {lang === 'zh' ? '专属心跳推送 URL (Heartbeat Push)' : 'Heartbeat Push URL'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const pushUrl = `https://${window.location.host}/api/push/${serviceFormData.pushToken || 'token'}`;
+                            navigator.clipboard.writeText(`curl -s "${pushUrl}"`);
+                            alert(lang === 'zh' ? '已复制心跳调用命令 (curl)' : 'Copied push command!');
+                          }}
+                          className="text-purple-700 dark:text-purple-300 font-semibold hover:underline cursor-pointer"
+                        >
+                          {lang === 'zh' ? '复制 curl' : 'Copy curl'}
+                        </button>
+                      </div>
+                      <div className="font-mono text-[11px] text-[#1d1d1f] dark:text-white bg-white dark:bg-black/30 p-2 rounded-lg truncate border border-purple-100 dark:border-white/10">
+                        curl -s "https://{window.location.host}/api/push/{serviceFormData.pushToken || 'token'}"
+                      </div>
+                      <div className="space-y-1 text-xs">
+                        <span className="text-[#86868b]">{lang === 'zh' ? '期望心跳间隔 (分钟)' : 'Heartbeat Interval (mins)'}</span>
+                        <input
+                          type="number"
+                          value={serviceFormData.heartbeatInterval || 60}
+                          onChange={(e) => setServiceFormData({ ...serviceFormData, heartbeatInterval: parseInt(e.target.value) })}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-purple-200 text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <label className="font-medium text-xs text-[#1d1d1f] dark:text-white">
+                        {lang === 'zh' ? '目标 URL' : 'Target URL'}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          required
+                          placeholder="https://api.yourdomain.com/health"
+                          value={serviceFormData.url || ''}
+                          onChange={(e) => setServiceFormData({ ...serviceFormData, url: e.target.value })}
+                          className="flex-1 px-3 py-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/10 text-xs font-mono text-[#1d1d1f] dark:text-white focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleTestProbe(serviceFormData.url || '')}
+                          disabled={isTestingProbe || !serviceFormData.url}
+                          className="px-3 py-2 rounded-xl bg-black/[0.04] dark:bg-white/10 font-semibold text-xs text-[#1d1d1f] dark:text-white hover:bg-black/[0.08] cursor-pointer disabled:opacity-50"
+                        >
+                          {isTestingProbe ? 'Testing...' : 'Test'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -2031,29 +2138,55 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   </div>
 
-                  {/* Upside Down Switch */}
-                  <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.05] dark:border-white/10 flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-xs text-[#1d1d1f] dark:text-white">
-                        {lang === 'zh' ? '反向监控模式 (Upside Down)' : 'Upside Down Mode'}
+                  {/* SSL Cert & Upside Down Switch */}
+                  <div className="space-y-2">
+                    <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.05] dark:border-white/10 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-xs text-[#1d1d1f] dark:text-white">
+                          🔒 {lang === 'zh' ? 'SSL/TLS 证书到期监测与预警' : 'SSL/TLS Certificate Expiry Monitor'}
+                        </div>
+                        <div className="text-[11px] text-[#6e6e73] dark:text-[#a1a1a6]">
+                          {lang === 'zh' ? '自动检测证书有效期并在剩余少于 30 天时告警' : 'Alert when certificate expires in < 30 days'}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-[#6e6e73] dark:text-[#a1a1a6]">
-                        {lang === 'zh' ? '将 200 OK 视为故障，错误状态视为正常' : 'Invert status'}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setServiceFormData({ ...serviceFormData, upsideDown: !serviceFormData.upsideDown })}
-                      className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                        serviceFormData.upsideDown ? 'bg-[#34c759]' : 'bg-[#d1d1d6] dark:bg-white/20'
-                      }`}
-                    >
-                      <div
-                        className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
-                          serviceFormData.upsideDown ? 'translate-x-4' : 'translate-x-0'
+                      <button
+                        type="button"
+                        onClick={() => setServiceFormData({ ...serviceFormData, checkSslCert: !serviceFormData.checkSslCert })}
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                          serviceFormData.checkSslCert ? 'bg-[#34c759]' : 'bg-[#d1d1d6] dark:bg-white/20'
                         }`}
-                      />
-                    </button>
+                      >
+                        <div
+                          className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
+                            serviceFormData.checkSslCert ? 'translate-x-4' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.05] dark:border-white/10 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-xs text-[#1d1d1f] dark:text-white">
+                          {lang === 'zh' ? '反向监控模式 (Upside Down)' : 'Upside Down Mode'}
+                        </div>
+                        <div className="text-[11px] text-[#6e6e73] dark:text-[#a1a1a6]">
+                          {lang === 'zh' ? '将 200 OK 视为故障，错误状态视为正常' : 'Invert status'}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setServiceFormData({ ...serviceFormData, upsideDown: !serviceFormData.upsideDown })}
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                          serviceFormData.upsideDown ? 'bg-[#34c759]' : 'bg-[#d1d1d6] dark:bg-white/20'
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
+                            serviceFormData.upsideDown ? 'translate-x-4' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2227,12 +2360,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         onChange={(e) => setNotifFormData({ ...notifFormData, type: e.target.value as NotificationType })}
                         className="w-full px-3 py-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/10 text-xs text-[#1d1d1f] dark:text-white focus:outline-none"
                       >
-                        <option value="email">📧 邮件告警 (Email)</option>
-                        <option value="webhook">🪝 通用 Webhook</option>
-                        <option value="feishu">🕊️ 飞书机器人 (Feishu)</option>
-                        <option value="dingtalk">💬 钉钉机器人 (DingTalk)</option>
+                        <option value="email">📧 邮件告警 (Email: Resend / SMTP / SendGrid)</option>
+                        <option value="webhook">🪝 通用 Webhook (Custom JSON Payload)</option>
+                        <option value="feishu">🕊️ 飞书群机器人 (Feishu / Lark)</option>
+                        <option value="dingtalk">💬 钉钉群机器人 (DingTalk)</option>
                         <option value="wecom">💼 企业微信机器人 (WeCom)</option>
-                        <option value="telegram">✈️ Telegram Bot</option>
+                        <option value="telegram">✈️ Telegram SRE Bot</option>
+                        <option value="slack">💬 Slack Webhook</option>
+                        <option value="discord">🎮 Discord Webhook</option>
+                        <option value="pushover">📱 Pushover Push</option>
+                        <option value="bark">🔔 Bark iOS 推送</option>
                       </select>
                     </div>
                   </div>

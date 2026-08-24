@@ -22,8 +22,16 @@ export interface CategoryConfig {
   icon?: 'server' | 'globe' | 'database' | 'cpu' | 'cloud' | 'shield';
 }
 
-export type MonitorType = 'http' | 'keyword' | 'json_query' | 'port' | 'dns';
+export type MonitorType = 'http' | 'keyword' | 'json_query' | 'port' | 'dns' | 'push';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+
+export interface SslCertInfo {
+  valid: boolean;
+  daysRemaining?: number;
+  validTo?: string;
+  issuer?: string;
+  expiresSoon?: boolean;
+}
 
 export interface ServiceItem {
   id: string;
@@ -37,6 +45,15 @@ export interface ServiceItem {
   method?: HttpMethod;
   expectedStatus?: number;
   acceptedStatusCodes?: string;
+  
+  // SSL Certificate Expiry Alert
+  checkSslCert?: boolean;
+  sslExpiryDaysWarning?: number;
+  
+  // Passive Heartbeat / Push Monitor (Dead Man's Switch)
+  pushToken?: string;
+  heartbeatInterval?: number;
+  lastHeartbeatPing?: string;
   
   // Keyword & JSON Query Matchers
   keywordMatch?: string;
@@ -58,7 +75,7 @@ export interface ServiceItem {
   maxRetries?: number;
   retryInterval?: number;
   
-  // Per-Service Alert Routing (Uptime Kuma Alignment)
+  // Per-Service Alert Routing
   notificationChannelIds?: string[];
   
   region?: string;
@@ -71,12 +88,16 @@ export interface ServiceLiveState {
   categoryId: string;
   categoryName?: string;
   status: ServiceStatus;
+  monitorType?: MonitorType;
   currentLatency: number;
   uptime90d: number;
   lastChecked: string;
   region: string;
   endpointUrl?: string;
   description?: string;
+  sslInfo?: SslCertInfo;
+  lastHeartbeatPing?: string;
+  pushToken?: string;
   recentLatencies: LatencyPoint[];
   history90d: DayHistory[];
 }
@@ -108,7 +129,7 @@ export interface Incident {
   updates: IncidentUpdate[];
 }
 
-export type NotificationType = 'email' | 'webhook' | 'feishu' | 'telegram' | 'dingtalk' | 'wecom' | 'bark';
+export type NotificationType = 'email' | 'webhook' | 'feishu' | 'telegram' | 'dingtalk' | 'wecom' | 'bark' | 'slack' | 'discord' | 'pushover';
 
 export interface NotificationChannel {
   id: string;
@@ -117,10 +138,11 @@ export interface NotificationChannel {
   enabled: boolean;
   defaultEnabled?: boolean;
   
-  // Trigger Condition Rules (Uptime Kuma Feature Alignment)
+  // Trigger Condition Rules
   notifyOnDown?: boolean;
   notifyOnUp?: boolean;
   notifyOnDegraded?: boolean;
+  notifyOnSslExpiry?: boolean;
   minFailuresBeforeAlert?: number;
   
   // Custom Alert Message & Payload Template
