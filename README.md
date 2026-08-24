@@ -15,7 +15,6 @@ An elegant, zero-maintenance, serverless status page and uptime monitoring engin
 <br/>
 
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers%20%2B%20KV-F38020?style=flat&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
-[![Tencent EdgeOne](https://img.shields.io/badge/Tencent-EdgeOne%20Pages-0052D9?style=flat&logo=tencent-qq&logoColor=white)](https://edgeone.ai/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind%20CSS-v4-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -159,21 +158,6 @@ Add a route in `wrangler.jsonc`:
 ]
 ```
 Then run `npx wrangler deploy`.
-
----
-
-### 🌐 Deploying to Tencent EdgeOne Pages (Makers)
-
-FlareStatus natively supports **Tencent EdgeOne Pages (Makers)** powered by Cloud Functions (Node.js v20.x), Built-in Blob Storage, and Scheduled Cron:
-
-1. Log in to the [Tencent EdgeOne Pages Console](https://console.cloud.tencent.com/edgeone/pages) (or [EdgeOne Makers](https://pages.edgeone.ai/)).
-2. **Connect Git & Deploy**:
-   - Click **Add Project** -> **Import from GitHub** -> Select your `FlareStatus` repository.
-   - The platform will automatically detect `edgeone.json`, run the Vite build, mount Cloud Functions (`./cloud-functions/api/`), initialize EdgeOne Blob Storage (`@edgeone/pages-blob`), and schedule the 2-minute Cron trigger (`*/2 * * * *`).
-3. **Zero Configuration Needed**:
-   - **No KV approval required**: Blob Storage initializes automatically on first call with 1 GB free capacity.
-4. **Bind Custom Domain**:
-   - Add your custom domain in the project settings for automatic EdgeOne Anycast CDN acceleration and free SSL.
 
 ---
 
