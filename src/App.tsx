@@ -51,7 +51,7 @@ export function App() {
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [timelineDays, setTimelineDays] = useState<number>(90);
+  const [timelineDays, setTimelineDays] = useState<number>(30);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -238,10 +238,10 @@ export function App() {
           totalProbes={statusData.totalProbesToday}
         />
 
-        {/* Filter and Control Bar */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Apple Segmented Category Tabs (Fully Dynamic) */}
-          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#e5e5ea]/80 dark:bg-white/10 overflow-x-auto no-scrollbar">
+        {/* Filter and Control Bar (Tight shrink-wrapped categories, 1D / 7D / 30D gears) */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          {/* Apple Segmented Category Tabs (Tight shrink-wrapped, zero empty void) */}
+          <div className="self-start inline-flex items-center gap-1 p-1 rounded-xl bg-[#e5e5ea]/80 dark:bg-white/10 overflow-x-auto no-scrollbar max-w-full">
             <button
               onClick={() => setSelectedCategory('all')}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
@@ -267,8 +267,8 @@ export function App() {
             ))}
           </div>
 
-          {/* Right Controls: Search & Days Selector */}
-          <div className="flex items-center gap-2 self-end md:self-center w-full md:w-auto">
+          {/* Right Controls: Search & Days Selector (1D / 7D / 30D) */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
             {/* Search Box */}
             <div className="relative flex-1 md:w-44">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]" />
@@ -281,9 +281,9 @@ export function App() {
               />
             </div>
 
-            {/* Days Scope Selector */}
+            {/* Days Scope Selector: 1D, 7D, 30D */}
             <div className="flex items-center gap-0.5 p-1 rounded-xl bg-[#e5e5ea]/80 dark:bg-white/10 text-xs flex-shrink-0">
-              {[30, 60, 90].map((d) => (
+              {[1, 7, 30].map((d) => (
                 <button
                   key={d}
                   onClick={() => setTimelineDays(d)}
@@ -293,7 +293,7 @@ export function App() {
                       : 'text-[#6e6e73] hover:text-[#1d1d1f] dark:text-neutral-400 dark:hover:text-neutral-300'
                   }`}
                 >
-                  {d === 30 ? t.days30 : d === 60 ? t.days60 : t.days90}
+                  {d === 1 ? t.days1 : d === 7 ? t.days7 : t.days30}
                 </button>
               ))}
             </div>
@@ -344,10 +344,14 @@ export function App() {
           )}
         </div>
 
-        {/* Incidents & Maintenance Section */}
+        {/* Incidents & Maintenance Section (Max 30 Days) */}
         <IncidentSection
-          activeIncidents={statusData.activeIncidents}
-          pastIncidents={statusData.pastIncidents}
+          activeIncidents={statusData.activeIncidents.filter(
+            (inc) => Date.now() - new Date(inc.createdAt).getTime() <= 30 * 24 * 60 * 60 * 1000
+          )}
+          pastIncidents={statusData.pastIncidents.filter(
+            (inc) => Date.now() - new Date(inc.createdAt).getTime() <= 30 * 24 * 60 * 60 * 1000
+          )}
           t={t}
         />
 

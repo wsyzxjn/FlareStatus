@@ -44,16 +44,18 @@ export interface Translations {
   catDataStorageShort: string;
   catDataStorageDesc: string;
   searchPlaceholder: string;
+  days1: string;
+  days7: string;
   days30: string;
-  days60: string;
-  days90: string;
   endpointsCount: string;
   noServicesFound: string;
   noServicesHint: string;
 
   // Service Card & Timeline
   daysAgo: string;
+  hoursAgo: string;
   today: string;
+  now: string;
   fullOperational: string;
   uptimeRate: string;
   dailyUptime: string;
@@ -106,7 +108,7 @@ export const DICTIONARY: Record<Language, Translations> = {
     statusOutage: '重大故障',
     statusMaintenance: '计划维护',
 
-    metricUptime: '90 天可用率',
+    metricUptime: '30 天可用率',
     metricUptimeSLA: 'SLA 目标: 99.9%',
     metricLatency: '边缘响应延迟',
     metricLatencySub: '全球 Anycast 节点均值',
@@ -126,15 +128,17 @@ export const DICTIONARY: Record<Language, Translations> = {
     catDataStorageShort: '数据存储',
     catDataStorageDesc: 'KV 高速缓存、D1 关系型数据库与 R2 对象存储',
     searchPlaceholder: '搜索监控服务...',
+    days1: '1天',
+    days7: '7天',
     days30: '30天',
-    days60: '60天',
-    days90: '90天',
     endpointsCount: '个探测端点',
     noServicesFound: '未找到匹配的监控服务',
     noServicesHint: '请尝试输入其他关键词或重置分类筛选。',
 
     daysAgo: '天前',
+    hoursAgo: '小时前',
     today: '今天',
+    now: '刚刚',
     fullOperational: '100% 正常运行',
     uptimeRate: '可用率',
     dailyUptime: '当日可用率',
@@ -150,7 +154,7 @@ export const DICTIONARY: Record<Language, Translations> = {
     probeProtocol: '探测协议',
     probeProtocolValue: 'HTTP/2 & HTTP/3 TLS 1.3',
 
-    incidentsTitle: '历史事件与计划内维护',
+    incidentsTitle: '最近 30 天事件与计划内维护',
     resolvedIn: '已解决',
     updatesCount: '次状态更新',
     statusInvestigating: '调查中',
@@ -183,7 +187,7 @@ export const DICTIONARY: Record<Language, Translations> = {
     statusOutage: 'Major Outage',
     statusMaintenance: 'Maintenance',
 
-    metricUptime: '90-Day Uptime',
+    metricUptime: '30-Day Uptime',
     metricUptimeSLA: 'Target SLA: 99.9%',
     metricLatency: 'Edge Latency',
     metricLatencySub: 'Global Anycast average',
@@ -203,15 +207,17 @@ export const DICTIONARY: Record<Language, Translations> = {
     catDataStorageShort: 'Data & Storage',
     catDataStorageDesc: 'Key-value cache, relational D1 database, and R2 object storage',
     searchPlaceholder: 'Filter services...',
+    days1: '1D',
+    days7: '7D',
     days30: '30D',
-    days60: '60D',
-    days90: '90D',
     endpointsCount: 'endpoints',
     noServicesFound: 'No matching services found',
     noServicesHint: 'Try searching for a different keyword or reset category filter.',
 
     daysAgo: 'days ago',
+    hoursAgo: 'hours ago',
     today: 'Today',
+    now: 'Now',
     fullOperational: '100% Operational',
     uptimeRate: 'Uptime',
     dailyUptime: 'Daily Uptime',
@@ -227,7 +233,7 @@ export const DICTIONARY: Record<Language, Translations> = {
     probeProtocol: 'Probe Protocol',
     probeProtocolValue: 'HTTP/2 & HTTP/3 TLS 1.3',
 
-    incidentsTitle: 'Incidents & Scheduled Maintenance',
+    incidentsTitle: 'Past 30 Days Incidents & Maintenance',
     resolvedIn: 'Resolved in',
     updatesCount: 'updates',
     statusInvestigating: 'Investigating',

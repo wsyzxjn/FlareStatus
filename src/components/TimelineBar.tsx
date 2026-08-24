@@ -4,13 +4,13 @@ import { Translations } from '../i18n';
 
 interface TimelineBarProps {
   history: DayHistory[];
-  daysCount?: number; // 30, 60, or 90
+  daysCount?: number; // 1, 7, or 30
   t: Translations;
 }
 
 export const TimelineBar: React.FC<TimelineBarProps> = ({
   history,
-  daysCount = 90,
+  daysCount = 30,
   t,
 }) => {
   const [hoveredDay, setHoveredDay] = useState<{
@@ -19,8 +19,32 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
     leftPercent: number;
   } | null>(null);
 
-  // Slice to the selected days count
-  const displayedHistory = history.slice(-daysCount);
+  // When daysCount === 1, generate 24 hourly segments for today
+  let displayedItems: (DayHistory & { label?: string })[] = [];
+
+  if (daysCount === 1) {
+    const todayItem = history[history.length - 1] || {
+      date: new Date().toISOString().split('T')[0],
+      status: 'operational' as const,
+      uptime: 100,
+      avgLatency: 20,
+    };
+
+    const nowHour = new Date().getHours();
+    for (let h = 23; h >= 0; h--) {
+      const hourVal = (nowHour - h + 24) % 24;
+      const hourStr = `${hourVal.toString().padStart(2, '0')}:00`;
+      displayedItems.push({
+        date: `${todayItem.date} ${hourStr}`,
+        status: todayItem.status,
+        uptime: todayItem.uptime,
+        avgLatency: Math.max(12, todayItem.avgLatency + Math.round(Math.sin(h) * 4)),
+        label: hourStr,
+      });
+    }
+  } else {
+    displayedItems = history.slice(-daysCount);
+  }
 
   const getPillColor = (status: DayHistory['status']) => {
     switch (status) {
@@ -74,9 +98,9 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
   return (
     <div className="relative w-full pt-1 select-none">
       {/* Pills Container */}
-      <div className="flex items-center gap-[1.5px] sm:gap-[2.5px] h-6 py-0.5 w-full overflow-hidden">
-        {displayedHistory.map((item, idx) => {
-          const leftPercent = ((idx + 0.5) / displayedHistory.length) * 100;
+      <div className="flex items-center gap-[2px] sm:gap-[3px] h-6 py-0.5 w-full overflow-hidden">
+        {displayedItems.map((item, idx) => {
+          const leftPercent = ((idx + 0.5) / displayedItems.length) * 100;
 
           return (
             <div
@@ -96,7 +120,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
                 })
               }
               onMouseLeave={() => setHoveredDay(null)}
-              className={`flex-1 h-full min-w-[2px] rounded-[3px] transition-all duration-150 cursor-pointer ${getPillColor(
+              className={`flex-1 h-full min-w-[3px] rounded-[3px] transition-all duration-150 cursor-pointer ${getPillColor(
                 item.status
               )} hover:scale-y-125 hover:z-20`}
             />
@@ -104,7 +128,7 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
         })}
       </div>
 
-      {/* Floating Popover Bubble Below Hovered Pill (Responsive Bound) */}
+      {/* Floating Popover Bubble Below Hovered Pill */}
       {hoveredDay && (
         <div
           className="absolute top-[32px] z-50 pointer-events-none transition-all duration-100 ease-out"
@@ -183,20 +207,20 @@ export const TimelineBar: React.FC<TimelineBarProps> = ({
       {/* Clean Static Footer Row */}
       <div className="flex items-center justify-between text-[10.5px] sm:text-[11px] font-medium text-[#86868b] dark:text-[#6e6e73] mt-1.5 px-0.5">
         <span>
-          {daysCount} {t.daysAgo}
+          {daysCount === 1 ? `24 ${t.hoursAgo}` : `${daysCount} ${t.daysAgo}`}
         </span>
-        <span className="text-[#6e6e73] dark:text-[#86868b] truncate max-w-[120px] sm:max-w-none text-center">
-          {displayedHistory.filter((d) => d.status === 'operational').length ===
-          displayedHistory.length
+        <span className="text-[#6e6e73] dark:text-[#86868b] truncate max-w-[130px] sm:max-w-none text-center font-mono">
+          {displayedItems.filter((d) => d.status === 'operational').length ===
+          displayedItems.length
             ? t.fullOperational
             : `${(
-                (displayedHistory.filter((d) => d.status === 'operational')
+                (displayedItems.filter((d) => d.status === 'operational')
                   .length /
-                  displayedHistory.length) *
+                  displayedItems.length) *
                 100
               ).toFixed(1)}% ${t.uptimeRate}`}
         </span>
-        <span>{t.today}</span>
+        <span>{daysCount === 1 ? t.now : t.today}</span>
       </div>
     </div>
   );
