@@ -67,9 +67,6 @@
       ]
     },
     {
-      "src": "^/api/(.*)$"
-    },
-    {
       "src": "^/metrics$",
       "methods": [
         "GET"

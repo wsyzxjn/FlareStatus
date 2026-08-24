@@ -58,6 +58,21 @@ export async function onRequestGet() {
   const hasDegraded = liveServices.some((s) => s.status === 'degraded');
   const systemStatus = hasCritical ? 'outage' : hasDegraded ? 'degraded' : 'operational';
 
+  const existingCatIds = new Set(categories.map((c) => c.id));
+  const mergedCategories = [...categories];
+  for (const s of liveServices) {
+    if (s.categoryId && !existingCatIds.has(s.categoryId)) {
+      existingCatIds.add(s.categoryId);
+      mergedCategories.push({
+        id: s.categoryId,
+        name: s.categoryId === 'default' ? '默认分类 (Default)' : s.categoryId,
+        shortName: s.categoryId,
+        description: '基础服务与生产 API 端点',
+        icon: 'server',
+      });
+    }
+  }
+
   const response = {
     systemStatus,
     headline: systemStatus === 'operational' ? 'All Systems Operational' : 'Partial Outage or Degraded Performance',
@@ -67,10 +82,10 @@ export async function onRequestGet() {
     avgLatencyMs: liveServices.length > 0 ? Math.round(liveServices.reduce((acc, s) => acc + s.currentLatency, 0) / liveServices.length) : 0,
     totalProbesToday: liveServices.length * 720,
     activeRegionsCount: liveServices.length > 0 ? 310 : 0,
-    categories: categories.map((cat) => ({
+    categories: mergedCategories.map((cat) => ({
       ...cat,
       services: liveServices.filter((s) => s.categoryId === cat.id),
-    })),
+    })).filter((cat) => cat.services.length > 0),
     activeIncidents,
     pastIncidents,
   };
