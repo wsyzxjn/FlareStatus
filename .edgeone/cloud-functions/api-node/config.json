@@ -1,0 +1,22 @@
+{
+  "routes": [
+    {
+      "src": "^/api/cron-probe$"
+    },
+    {
+      "src": "^/api/status$",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "src": "^/api/(.*)$"
+    },
+    {
+      "src": "^/metrics$",
+      "methods": [
+        "GET"
+      ]
+    }
+  ]
+}
