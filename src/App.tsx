@@ -17,6 +17,7 @@ import {
   Cloud,
   ShieldCheck,
   FolderTree,
+  Sliders,
 } from 'lucide-react';
 
 export function App() {
@@ -353,9 +354,21 @@ export function App() {
           ))}
 
           {filteredCategories.length === 0 && (
-            <div className="p-12 text-center rounded-3xl glass-panel text-[#86868b] dark:text-[#a1a1a6] space-y-2">
-              <p className="font-medium text-[#1d1d1f] dark:text-white">{t.noServicesFound}</p>
-              <p className="text-xs">{t.noServicesHint}</p>
+            <div className="p-10 sm:p-14 text-center rounded-2xl glass-panel text-[#86868b] dark:text-[#a1a1a6] space-y-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#f5f5f7] dark:bg-white/10 flex items-center justify-center mx-auto text-[#6e6e73]">
+                <Server className="w-5 h-5 stroke-[1.75]" />
+              </div>
+              <p className="font-semibold text-sm text-[#1d1d1f] dark:text-white">{t.noServicesFound}</p>
+              <p className="text-xs text-[#6e6e73] dark:text-[#a1a1a6] max-w-sm mx-auto">{t.noServicesHint}</p>
+              <button
+                onClick={() => {
+                  window.location.href = '/admin';
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xs cursor-pointer active:scale-95 mt-2"
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>{lang === 'zh' ? '进入管理后台添加监控' : 'Open Admin Console'}</span>
+              </button>
             </div>
           )}
         </div>

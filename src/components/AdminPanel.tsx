@@ -55,170 +55,9 @@ interface AdminPanelProps {
   onUpdateIncidents?: (active: Incident[], past: Incident[]) => void;
 }
 
-const INITIAL_ADMIN_SERVICES: ServiceItem[] = [
-  {
-    id: 'api-gateway',
-    name: 'Cloudflare Edge API Gateway',
-    categoryId: 'core-edge',
-    url: 'https://cloudflare.com/cdn-cgi/trace',
-    enabled: true,
-    monitorType: 'http',
-    method: 'GET',
-    expectedStatus: 200,
-    acceptedStatusCodes: '200-299',
-    maxRetries: 2,
-    timeout: 8,
-    notificationChannelIds: ['email-alerts', 'custom-webhook', 'feishu-bot'],
-    region: 'HKG • NRT • SJC • FRA',
-    description: 'Global distributed ingress, rate limiting and smart routing',
-  },
-  {
-    id: 'auth-service',
-    name: 'Authentication & Session Service',
-    categoryId: 'core-edge',
-    url: 'https://httpbin.org/status/200',
-    enabled: true,
-    monitorType: 'http',
-    method: 'GET',
-    expectedStatus: 200,
-    maxRetries: 1,
-    timeout: 5,
-    notificationChannelIds: ['email-alerts', 'feishu-bot'],
-    region: 'Global Edge Token Verify',
-    description: 'OAuth 2.1 token issuance, Passkey authentication & JWT verification',
-  },
-  {
-    id: 'dns-resolver',
-    name: 'Authoritative DNS & Edge Routing',
-    categoryId: 'core-edge',
-    url: 'https://1.1.1.1/dns-query',
-    enabled: true,
-    monitorType: 'dns',
-    method: 'GET',
-    expectedStatus: 200,
-    notificationChannelIds: ['email-alerts'],
-    region: '1.1.1.1 Anycast Network',
-    description: 'Sub-millisecond authoritative record lookup & failover',
-  },
-  {
-    id: 'web-dashboard',
-    name: 'Web Management Console',
-    categoryId: 'web-apps',
-    url: 'https://httpbin.org/status/200',
-    enabled: true,
-    monitorType: 'keyword',
-    keywordMatch: 'success',
-    method: 'GET',
-    expectedStatus: 200,
-    notificationChannelIds: ['feishu-bot'],
-    region: 'Cloudflare Pages CDN',
-    description: 'React SPA dashboard & real-time telemetry visualizer',
-  },
-  {
-    id: 'developer-docs',
-    name: 'Developer Documentation & SDK Portal',
-    categoryId: 'web-apps',
-    url: 'https://httpbin.org/status/200',
-    enabled: true,
-    monitorType: 'http',
-    method: 'GET',
-    expectedStatus: 200,
-    notificationChannelIds: ['feishu-bot'],
-    region: 'Global Edge Cache',
-    description: 'Interactive API reference, code playground and changelogs',
-  },
-  {
-    id: 'kv-storage',
-    name: 'Workers KV High-Speed Cache',
-    categoryId: 'data-storage',
-    url: 'https://httpbin.org/status/200',
-    enabled: true,
-    monitorType: 'http',
-    method: 'GET',
-    expectedStatus: 200,
-    notificationChannelIds: ['custom-webhook'],
-    region: 'Global Read Replicas',
-    description: 'Ultra low latency global key-value store',
-  },
-];
+const INITIAL_ADMIN_SERVICES: ServiceItem[] = [];
 
-const INITIAL_NOTIFICATIONS: NotificationChannel[] = [
-  {
-    id: 'email-alerts',
-    type: 'email',
-    name: 'SRE 紧急邮件组 (Email Alerts)',
-    enabled: true,
-    defaultEnabled: true,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: false,
-    toEmail: 'sre-duty@yourcompany.com',
-    fromEmail: 'status@notify.yourdomain.com',
-    emailProvider: 'resend',
-    apiKey: 're_123456789_abcdef',
-    customTitleTemplate: '{{STATUS_EMOJI}} [Status Alert] {{SERVICE_NAME}} is now {{STATUS}}',
-    customBodyTemplate: 'Service: {{SERVICE_NAME}}\nStatus: {{STATUS}}\nTime: {{TIME}}\nTarget: {{TARGET_URL}}\nHTTP Code: {{HTTP_CODE}}\nLatency: {{LATENCY}}',
-  },
-  {
-    id: 'custom-webhook',
-    type: 'webhook',
-    name: '自动化运维 Webhook (Ops Automation)',
-    enabled: true,
-    defaultEnabled: false,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: true,
-    webhookUrl: 'https://api.yourdomain.com/webhooks/status-events',
-    secretToken: 'Bearer sec_token_998877',
-    customBodyTemplate: '{"event":"status_change","service":"{{SERVICE_NAME}}","status":"{{STATUS}}","time":"{{TIME}}","latency":"{{LATENCY}}","url":"{{TARGET_URL}}"}',
-  },
-  {
-    id: 'feishu-bot',
-    type: 'feishu',
-    name: '飞书群机器人 (Feishu / Lark Bot)',
-    enabled: true,
-    defaultEnabled: true,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: true,
-    webhookUrl: 'https://open.feishu.cn/open-apis/bot/v2/hook/xxxx-xxxx',
-    customTitleTemplate: '{{STATUS_EMOJI}} 服务状态变更提醒: {{SERVICE_NAME}}',
-    customBodyTemplate: '【服务名称】{{SERVICE_NAME}}\n【当前状态】{{STATUS}}\n【检测耗时】{{LATENCY}}\n【响应状态码】{{HTTP_CODE}}\n【探测目标】{{TARGET_URL}}\n【发生时间】{{TIME}}',
-  },
-  {
-    id: 'dingtalk-bot',
-    type: 'dingtalk',
-    name: '钉钉监控告警群 (DingTalk)',
-    enabled: false,
-    defaultEnabled: false,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: false,
-    webhookUrl: 'https://oapi.dingtalk.com/robot/send?access_token=xxxx',
-  },
-  {
-    id: 'wecom-bot',
-    type: 'wecom',
-    name: '企业微信告警群 (WeCom)',
-    enabled: false,
-    defaultEnabled: false,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: false,
-    webhookUrl: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxx',
-  },
-  {
-    id: 'tg-bot',
-    type: 'telegram',
-    name: 'Telegram SRE Alert Bot',
-    enabled: false,
-    defaultEnabled: false,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: false,
-    webhookUrl: 'https://api.telegram.org/bot<TOKEN>/sendMessage',
-  },
-];
+const INITIAL_NOTIFICATIONS: NotificationChannel[] = [];
 
 const TEMPLATE_VARIABLES = [
   { tag: '{{SERVICE_NAME}}', desc: '服务名称' },
@@ -266,7 +105,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         if (data.categories) setCategories(data.categories);
         if (data.notifications) setNotifications(data.notifications);
         if (data.settings) setSettings(data.settings);
-        if (data.incidents && data.incidents.length > 0) setIncidents(data.incidents);
+        if (data.incidents !== undefined) setIncidents(data.incidents);
       })
       .catch(() => {});
   }, []);
@@ -374,6 +213,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const syncIncidentsToParent = (updatedList: Incident[]) => {
     setIncidents(updatedList);
+    fetch('/api/admin/incidents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedList),
+    }).catch(() => {});
+
     if (onUpdateIncidents) {
       const active = updatedList.filter((i) => i.status !== 'resolved');
       const past = updatedList.filter((i) => i.status === 'resolved');
@@ -381,16 +226,92 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  const handleClearAllData = async () => {
+    if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有监控端点、自定义分类、事件历史与告警通道吗？此操作将彻底清空云端 KV 数据库。' : 'Warning: Are you sure you want to clear all services, categories, incidents and KV storage?')) return;
+    try {
+      await fetch('/api/admin/clear-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'all' }),
+      });
+    } catch (_e) {}
+    setServices([]);
+    setIncidents([]);
+    setNotifications([]);
+    setCategories(DEFAULT_CATEGORIES);
+    if (onUpdateIncidents) onUpdateIncidents([], []);
+    showSavedNotice();
+  };
+
+  const handleClearServices = async () => {
+    if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有监控端点吗？此操作将删除所有端点及其探测数据。' : 'Warning: Are you sure you want to clear all service endpoints?')) return;
+    try {
+      await fetch('/api/admin/clear-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'services' }),
+      });
+    } catch (_e) {}
+    setServices([]);
+    showSavedNotice();
+  };
+
+  const handleClearIncidents = async () => {
+    if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有事件通告与维护记录吗？' : 'Warning: Are you sure you want to clear all incidents and maintenance records?')) return;
+    try {
+      await fetch('/api/admin/clear-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'incidents' }),
+      });
+    } catch (_e) {}
+    setIncidents([]);
+    if (onUpdateIncidents) onUpdateIncidents([], []);
+    showSavedNotice();
+  };
+
+  const handleClearNotifications = async () => {
+    if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有告警通道配置吗？' : 'Warning: Are you sure you want to clear all notification channels?')) return;
+    try {
+      await fetch('/api/admin/clear-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'notifications' }),
+      });
+    } catch (_e) {}
+    setNotifications([]);
+    showSavedNotice();
+  };
+
+  const handleSaveGlobalSettings = () => {
+    fetch('/api/admin/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    }).catch(() => {});
+    showSavedNotice();
+  };
+
   // Endpoint handlers
   const handleToggleService = (id: string) => {
-    setServices((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s))
-    );
+    const updated = services.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s));
+    setServices(updated);
+    fetch('/api/admin/services', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
     showSavedNotice();
   };
 
   const handleDeleteService = (id: string) => {
-    setServices((prev) => prev.filter((s) => s.id !== id));
+    const updated = services.filter((s) => s.id !== id);
+    setServices(updated);
+    fetch('/api/admin/services', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
     showSavedNotice();
   };
 
@@ -438,16 +359,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     e.preventDefault();
     if (!serviceFormData.name || !serviceFormData.url) return;
 
+    let updated: ServiceItem[];
     if (editingService) {
-      setServices((prev) =>
-        prev.map((s) => (s.id === editingService.id ? ({ ...s, ...serviceFormData } as ServiceItem) : s))
-      );
+      updated = services.map((s) => (s.id === editingService.id ? ({ ...s, ...serviceFormData } as ServiceItem) : s));
     } else {
       const newSvc: ServiceItem = {
         id: serviceFormData.id || `svc-${Date.now()}`,
         name: serviceFormData.name || 'New Service',
         url: serviceFormData.url || 'https://',
-        categoryId: serviceFormData.categoryId || categories[0]?.id || 'core-edge',
+        categoryId: serviceFormData.categoryId || categories[0]?.id || 'default',
         enabled: serviceFormData.enabled ?? true,
         monitorType: serviceFormData.monitorType || 'http',
         expectedStatus: Number(serviceFormData.expectedStatus) || 200,
@@ -468,8 +388,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         region: serviceFormData.region || 'Global Anycast',
         description: serviceFormData.description || '',
       };
-      setServices((prev) => [...prev, newSvc]);
+      updated = [...services, newSvc];
     }
+    setServices(updated);
+    fetch('/api/admin/services', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
 
     setIsServiceModalOpen(false);
     showSavedNotice();
@@ -514,11 +440,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       alert(lang === 'zh' ? '至少需保留一个分类' : 'Must keep at least one category');
       return;
     }
-    setCategories((prev) => prev.filter((c) => c.id !== catId));
-    const fallbackId = categories.find((c) => c.id !== catId)?.id || 'core-edge';
-    setServices((prev) =>
-      prev.map((s) => (s.categoryId === catId ? { ...s, categoryId: fallbackId } : s))
-    );
+    const updated = categories.filter((c) => c.id !== catId);
+    setCategories(updated);
+    fetch('/api/admin/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
+
+    const fallbackId = updated[0]?.id || 'default';
+    const updatedServices = services.map((s) => (s.categoryId === catId ? { ...s, categoryId: fallbackId } : s));
+    setServices(updatedServices);
+    fetch('/api/admin/services', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedServices),
+    }).catch(() => {});
     showSavedNotice();
   };
 
@@ -526,10 +463,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     e.preventDefault();
     if (!categoryFormData.name) return;
 
+    let updated: CategoryConfig[];
     if (editingCategory) {
-      setCategories((prev) =>
-        prev.map((c) => (c.id === editingCategory.id ? ({ ...c, ...categoryFormData } as CategoryConfig) : c))
-      );
+      updated = categories.map((c) => (c.id === editingCategory.id ? ({ ...c, ...categoryFormData } as CategoryConfig) : c));
     } else {
       const newCat: CategoryConfig = {
         id: categoryFormData.id || categoryFormData.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
@@ -538,8 +474,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         description: categoryFormData.description || '',
         icon: categoryFormData.icon || 'server',
       };
-      setCategories((prev) => [...prev, newCat]);
+      updated = [...categories, newCat];
     }
+    setCategories(updated);
+    fetch('/api/admin/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
 
     setIsCategoryModalOpen(false);
     showSavedNotice();
@@ -712,13 +654,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleDeleteNotification = (notifId: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== notifId));
-    setServices((prev) =>
-      prev.map((s) => ({
-        ...s,
-        notificationChannelIds: (s.notificationChannelIds || []).filter((id) => id !== notifId),
-      }))
-    );
+    const updatedNotifs = notifications.filter((n) => n.id !== notifId);
+    setNotifications(updatedNotifs);
+    fetch('/api/admin/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedNotifs),
+    }).catch(() => {});
+
+    const updatedServices = services.map((s) => ({
+      ...s,
+      notificationChannelIds: (s.notificationChannelIds || []).filter((id) => id !== notifId),
+    }));
+    setServices(updatedServices);
+    fetch('/api/admin/services', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedServices),
+    }).catch(() => {});
+
+    showSavedNotice();
+  };
+
+  const handleToggleNotification = (notifId: string) => {
+    const updated = notifications.map((n) => (n.id === notifId ? { ...n, enabled: !n.enabled } : n));
+    setNotifications(updated);
+    fetch('/api/admin/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
     showSavedNotice();
   };
 
@@ -726,10 +691,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     e.preventDefault();
     if (!notifFormData.name) return;
 
+    let updated: NotificationChannel[];
     if (editingNotification) {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === editingNotification.id ? ({ ...n, ...notifFormData } as NotificationChannel) : n))
-      );
+      updated = notifications.map((n) => (n.id === editingNotification.id ? ({ ...n, ...notifFormData } as NotificationChannel) : n));
     } else {
       const newNotif: NotificationChannel = {
         id: notifFormData.id || `notif-${Date.now()}`,
@@ -751,8 +715,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         smtpHost: notifFormData.smtpHost,
         smtpPort: notifFormData.smtpPort,
       };
-      setNotifications((prev) => [...prev, newNotif]);
+      updated = [...notifications, newNotif];
     }
+    setNotifications(updated);
+    fetch('/api/admin/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {});
 
     setIsNotificationModalOpen(false);
     showSavedNotice();
@@ -1013,98 +983,121 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </p>
                   </div>
 
-                  <button
-                    onClick={handleOpenNewServiceModal}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xs hover:opacity-90 transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{lang === 'zh' ? '新增监控目标' : 'Add Endpoint'}</span>
-                  </button>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {services.length > 0 && (
+                      <button
+                        onClick={handleClearServices}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200/60 dark:border-rose-500/20 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                        title={lang === 'zh' ? '清空所有监控端点' : 'Clear all services'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{lang === 'zh' ? '清空端点' : 'Clear All'}</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={handleOpenNewServiceModal}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xs hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{lang === 'zh' ? '新增监控目标' : 'Add Endpoint'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Service List Cards */}
                 <div className="space-y-2.5">
-                  {services.map((svc) => {
-                    const parentCat = categories.find((c) => c.id === svc.categoryId);
-                    const boundChannelsCount = svc.notificationChannelIds ? svc.notificationChannelIds.length : 0;
+                  {services.length === 0 ? (
+                    <div className="p-8 text-center rounded-2xl glass-panel text-xs text-[#86868b] dark:text-[#a1a1a6] space-y-2">
+                      <p className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
+                        {lang === 'zh' ? '暂无监控目标' : 'No Endpoints Configured'}
+                      </p>
+                      <p>
+                        {lang === 'zh' ? '点击右上角“新增监控目标”开始添加您的第一个服务端点。' : 'Click "+ Add Endpoint" to create your first monitor.'}
+                      </p>
+                    </div>
+                  ) : (
+                    services.map((svc) => {
+                      const parentCat = categories.find((c) => c.id === svc.categoryId);
+                      const boundChannelsCount = svc.notificationChannelIds ? svc.notificationChannelIds.length : 0;
 
-                    return (
-                      <div
-                        key={svc.id}
-                        className="p-4 rounded-2xl glass-panel border border-black/[0.05] dark:border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-xs transition-shadow"
-                      >
-                        <div className="flex items-start sm:items-center gap-3">
-                          {/* Compact Status Switch Toggle */}
-                          <button
-                            onClick={() => handleToggleService(svc.id)}
-                            className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex-shrink-0 mt-0.5 sm:mt-0 ${
-                              svc.enabled ? 'bg-[#34c759]' : 'bg-[#d1d1d6] dark:bg-white/20'
-                            }`}
-                            title={svc.enabled ? 'Pause monitoring' : 'Resume monitoring'}
-                          >
-                            <div
-                              className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
-                                svc.enabled ? 'translate-x-4' : 'translate-x-0'
+                      return (
+                        <div
+                          key={svc.id}
+                          className="p-4 rounded-2xl glass-panel border border-black/[0.05] dark:border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:shadow-xs transition-shadow"
+                        >
+                          <div className="flex items-start sm:items-center gap-3">
+                            {/* Compact Status Switch Toggle */}
+                            <button
+                              onClick={() => handleToggleService(svc.id)}
+                              className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer flex-shrink-0 mt-0.5 sm:mt-0 ${
+                                svc.enabled ? 'bg-[#34c759]' : 'bg-[#d1d1d6] dark:bg-white/20'
                               }`}
-                            />
-                          </button>
+                              title={svc.enabled ? 'Pause monitoring' : 'Resume monitoring'}
+                            >
+                              <div
+                                className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
+                                  svc.enabled ? 'translate-x-4' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
 
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
-                                {svc.name}
-                              </span>
-                              <span className="text-[11px] px-2 py-0.5 rounded-md bg-black/[0.04] dark:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] font-medium">
-                                {parentCat?.name || svc.categoryId}
-                              </span>
-                              <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-bold uppercase">
-                                {svc.method || 'GET'} • {svc.expectedStatus || 200}
-                              </span>
-                              {svc.monitorType && svc.monitorType !== 'http' && (
-                                <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 font-semibold uppercase">
-                                  {svc.monitorType}
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
+                                  {svc.name}
                                 </span>
-                              )}
-                              {boundChannelsCount > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[10.5px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 font-medium">
-                                  <Bell className="w-3 h-3" />
-                                  {boundChannelsCount}
+                                <span className="text-[11px] px-2 py-0.5 rounded-md bg-black/[0.04] dark:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] font-medium">
+                                  {parentCat?.name || svc.categoryId}
                                 </span>
-                              )}
-                            </div>
-                            <div className="font-mono text-xs text-[#86868b] dark:text-[#a1a1a6] mt-0.5 truncate max-w-md">
-                              {svc.url}
+                                <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-bold uppercase">
+                                  {svc.method || 'GET'} • {svc.expectedStatus || 200}
+                                </span>
+                                {svc.monitorType && svc.monitorType !== 'http' && (
+                                  <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 font-semibold uppercase">
+                                    {svc.monitorType}
+                                  </span>
+                                )}
+                                {boundChannelsCount > 0 && (
+                                  <span className="inline-flex items-center gap-1 text-[10.5px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 font-medium">
+                                    <Bell className="w-3 h-3" />
+                                    {boundChannelsCount}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="font-mono text-xs text-[#86868b] dark:text-[#a1a1a6] mt-0.5 truncate max-w-md">
+                                {svc.url}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-1.5 self-end sm:self-center">
-                          <button
-                            onClick={() => handleTestProbe(svc.url)}
-                            className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] transition-colors cursor-pointer"
-                            title="Instant Test Probe"
-                          >
-                            <Play className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditServiceModal(svc)}
-                            className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] transition-colors cursor-pointer"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteService(svc.id)}
-                            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Actions */}
+                          <div className="flex items-center gap-1.5 self-end sm:self-center">
+                            <button
+                              onClick={() => handleTestProbe(svc.url)}
+                              className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] transition-colors cursor-pointer"
+                              title="Instant Test Probe"
+                            >
+                              <Play className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditServiceModal(svc)}
+                              className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] transition-colors cursor-pointer"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteService(svc.id)}
+                              className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
@@ -1205,13 +1198,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       {lang === 'zh' ? '向用户公开广播故障调查进度，或预约停机维护窗口' : 'Broadcast incident investigations or schedule downtime windows'}
                     </p>
                   </div>
-                  <button
-                    onClick={handleOpenNewIncidentModal}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xs hover:opacity-90 transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{lang === 'zh' ? '发布新事件' : 'New Incident'}</span>
-                  </button>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {incidents.length > 0 && (
+                      <button
+                        onClick={handleClearIncidents}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200/60 dark:border-rose-500/20 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                        title={lang === 'zh' ? '清空所有事件通告' : 'Clear all incidents'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{lang === 'zh' ? '清空事件' : 'Clear All'}</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={handleOpenNewIncidentModal}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xs hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{lang === 'zh' ? '发布新事件' : 'New Incident'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Active Incidents section if any */}
@@ -1299,61 +1304,72 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     {lang === 'zh' ? '已解决历史事件 (Past / Resolved)' : 'Past Incidents'}
                   </div>
 
-                  {pastIncidentsList.map((inc) => (
-                    <div
-                      key={inc.id}
-                      className="p-4 sm:p-4.5 rounded-2xl glass-panel border border-black/[0.05] dark:border-white/[0.06] space-y-2.5"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
-                              {inc.title}
-                            </span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold border ${getSeverityBadge(inc.severity)}`}>
-                              {inc.severity}
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-white/10 font-mono text-[#6e6e73]">
-                              Resolved
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-[#86868b] mt-0.5">
-                            {new Date(inc.createdAt).toLocaleDateString()} • {inc.updates.length} {lang === 'zh' ? '次进展更新' : 'updates'}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <button
-                            onClick={() => handleOpenPostUpdateModal(inc)}
-                            className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] cursor-pointer"
-                            title="Add Update"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenEditIncidentModal(inc)}
-                            className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] cursor-pointer"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteIncident(inc.id)}
-                            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 cursor-pointer"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {inc.updates[0] && (
-                        <p className="text-xs text-[#6e6e73] dark:text-[#a1a1a6] leading-relaxed pt-1.5 border-t border-black/[0.04] dark:border-white/10">
-                          {inc.updates[0].message}
-                        </p>
-                      )}
+                  {pastIncidentsList.length === 0 && activeIncidentsList.length === 0 ? (
+                    <div className="p-8 text-center rounded-2xl glass-panel text-xs text-[#86868b] dark:text-[#a1a1a6] space-y-2">
+                      <p className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
+                        {lang === 'zh' ? '暂无事件或维护通告' : 'No Incidents Recorded'}
+                      </p>
+                      <p>
+                        {lang === 'zh' ? '当发生突发故障或计划维护时，点击右上角“发布新事件”向用户广播。' : 'Click "+ New Incident" to broadcast outage or maintenance notices.'}
+                      </p>
                     </div>
-                  ))}
+                  ) : (
+                    pastIncidentsList.map((inc) => (
+                      <div
+                        key={inc.id}
+                        className="p-4 sm:p-4.5 rounded-2xl glass-panel border border-black/[0.05] dark:border-white/[0.06] space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
+                                {inc.title}
+                              </span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold border ${getSeverityBadge(inc.severity)}`}>
+                                {inc.severity}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 dark:bg-white/10 font-mono text-[#6e6e73]">
+                                Resolved
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-[#86868b] mt-0.5">
+                              {new Date(inc.createdAt).toLocaleDateString()} • {inc.updates.length} {lang === 'zh' ? '次进展更新' : 'updates'}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button
+                              onClick={() => handleOpenPostUpdateModal(inc)}
+                              className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] cursor-pointer"
+                              title="Add Update"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditIncidentModal(inc)}
+                              className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] cursor-pointer"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteIncident(inc.id)}
+                              className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 cursor-pointer"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {inc.updates[0] && (
+                          <p className="text-xs text-[#6e6e73] dark:text-[#a1a1a6] leading-relaxed pt-1.5 border-t border-black/[0.04] dark:border-white/10">
+                            {inc.updates[0].message}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -1375,128 +1391,146 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </p>
                   </div>
 
-                  <button
-                    onClick={handleOpenNewNotificationModal}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xs hover:opacity-90 transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{lang === 'zh' ? '添加告警通道' : 'Add Channel'}</span>
-                  </button>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={handleClearNotifications}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold border border-rose-200/60 dark:border-rose-500/20 shadow-2xs transition-all active:scale-95 cursor-pointer"
+                        title={lang === 'zh' ? '清空所有告警通道' : 'Clear all alert channels'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{lang === 'zh' ? '清空通道' : 'Clear All'}</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={handleOpenNewNotificationModal}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xs hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{lang === 'zh' ? '添加告警通道' : 'Add Channel'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3">
-                  {notifications.map((notif) => {
-                    const boundServices = services.filter(
-                      (s) => s.notificationChannelIds && s.notificationChannelIds.includes(notif.id)
-                    );
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center rounded-2xl glass-panel text-xs text-[#86868b] dark:text-[#a1a1a6] space-y-2">
+                      <p className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
+                        {lang === 'zh' ? '暂无配置告警通道' : 'No Notification Channels'}
+                      </p>
+                      <p>
+                        {lang === 'zh' ? '点击右上角“添加告警通道”配置邮件 (Resend/SMTP)、Webhook、飞书或钉钉机器人。' : 'Click "+ Add Channel" to configure email, webhook or bot alerts.'}
+                      </p>
+                    </div>
+                  ) : (
+                    notifications.map((notif) => {
+                      const boundServices = services.filter(
+                        (s) => s.notificationChannelIds && s.notificationChannelIds.includes(notif.id)
+                      );
 
-                    return (
-                      <div
-                        key={notif.id}
-                        className="p-4 sm:p-4.5 rounded-2xl glass-panel border border-black/[0.05] dark:border-white/[0.06] space-y-3"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] dark:bg-white/10 flex items-center justify-center flex-shrink-0">
-                              {renderNotificationIcon(notif.type)}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
-                                  {notif.name}
-                                </span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-md uppercase font-bold bg-black/[0.04] dark:bg-white/10 text-[#6e6e73]">
-                                  {notif.type}
-                                </span>
-                                {notif.defaultEnabled && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-medium">
-                                    {lang === 'zh' ? '默认全局' : 'Global'}
+                      return (
+                        <div
+                          key={notif.id}
+                          className="p-4 sm:p-4.5 rounded-2xl glass-panel border border-black/[0.05] dark:border-white/[0.06] space-y-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-[#f5f5f7] dark:bg-white/10 flex items-center justify-center flex-shrink-0">
+                                {renderNotificationIcon(notif.type)}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold text-sm text-[#1d1d1f] dark:text-white">
+                                    {notif.name}
                                   </span>
-                                )}
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md uppercase font-bold bg-black/[0.04] dark:bg-white/10 text-[#6e6e73]">
+                                    {notif.type}
+                                  </span>
+                                  {notif.defaultEnabled && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-medium">
+                                      {lang === 'zh' ? '默认全局' : 'Global'}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-[#86868b] dark:text-[#a1a1a6] mt-0.5">
+                                  <span>
+                                    {lang === 'zh' ? '触发:' : 'Triggers:'}{' '}
+                                    {[
+                                      notif.notifyOnDown ? (lang === 'zh' ? '宕机' : 'Down') : null,
+                                      notif.notifyOnUp ? (lang === 'zh' ? '恢复' : 'Up') : null,
+                                      notif.notifyOnDegraded ? (lang === 'zh' ? '降级' : 'Degraded') : null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join('/') || (lang === 'zh' ? '未配置' : 'None')}
+                                  </span>
+                                  <span>•</span>
+                                  <span>
+                                    {boundServices.length} {lang === 'zh' ? '个指定服务绑定' : 'bound'}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 text-[11px] text-[#86868b] dark:text-[#a1a1a6] mt-0.5">
-                                <span>
-                                  {lang === 'zh' ? '触发:' : 'Triggers:'}{' '}
-                                  {[
-                                    notif.notifyOnDown ? (lang === 'zh' ? '宕机' : 'Down') : null,
-                                    notif.notifyOnUp ? (lang === 'zh' ? '恢复' : 'Up') : null,
-                                    notif.notifyOnDegraded ? (lang === 'zh' ? '降级' : 'Degraded') : null,
-                                  ]
-                                    .filter(Boolean)
-                                    .join('/') || (lang === 'zh' ? '未配置' : 'None')}
-                                </span>
-                                <span>•</span>
-                                <span>
-                                  {boundServices.length} {lang === 'zh' ? '个指定服务绑定' : 'bound'}
-                                </span>
-                              </div>
+                            </div>
+
+                            {/* Enable toggle & Actions */}
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                onClick={() => handleToggleNotification(notif.id)}
+                                className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                                  notif.enabled ? 'bg-[#34c759]' : 'bg-[#d1d1d6] dark:bg-white/20'
+                                }`}
+                                title={notif.enabled ? 'Enabled' : 'Disabled'}
+                              >
+                                <div
+                                  className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
+                                    notif.enabled ? 'translate-x-4' : 'translate-x-0'
+                                  }`}
+                                />
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenEditNotificationModal(notif)}
+                                className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] transition-colors cursor-pointer"
+                                title="Edit & Custom Template"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteNotification(notif.id)}
+                                className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
 
-                          {/* Enable toggle & Actions */}
-                          <div className="flex items-center gap-2.5">
-                            <button
-                              onClick={() => {
-                                setNotifications((prev) =>
-                                  prev.map((n) => (n.id === notif.id ? { ...n, enabled: !n.enabled } : n))
-                                );
-                                showSavedNotice();
-                              }}
-                              className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                                notif.enabled ? 'bg-[#34c759]' : 'bg-[#d1d1d6] dark:bg-white/20'
-                              }`}
-                              title={notif.enabled ? 'Enabled' : 'Disabled'}
-                            >
-                              <div
-                                className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
-                                  notif.enabled ? 'translate-x-4' : 'translate-x-0'
-                                }`}
-                              />
-                            </button>
+                          {/* Detail row */}
+                          <div className="flex items-center gap-2 pt-2 border-t border-black/[0.04] dark:border-white/10">
+                            <div className="flex-1 font-mono text-xs text-[#6e6e73] dark:text-[#a1a1a6] truncate bg-black/[0.02] dark:bg-white/[0.02] px-3 py-1.5 rounded-xl">
+                              {notif.type === 'email'
+                                ? `To: ${notif.toEmail} | Provider: ${notif.emailProvider?.toUpperCase() || 'SMTP'}`
+                                : `${notif.webhookUrl || 'No Webhook URL'}`}
+                            </div>
 
                             <button
-                              onClick={() => handleOpenEditNotificationModal(notif)}
-                              className="p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/10 text-[#6e6e73] dark:text-[#a1a1a6] transition-colors cursor-pointer"
-                              title="Edit & Custom Template"
+                              onClick={() => handleSendTestNotify(notif.id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] dark:bg-white/10 dark:hover:bg-white/15 text-xs font-semibold transition-colors cursor-pointer flex-shrink-0"
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-
-                            <button
-                              onClick={() => handleDeleteNotification(notif.id)}
-                              className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Send className="w-3 h-3 text-blue-500" />
+                              <span>
+                                {notifyTestStatus[notif.id] === 'sending'
+                                  ? '...'
+                                  : notifyTestStatus[notif.id] === 'success'
+                                  ? (lang === 'zh' ? '✓ 发送成功' : '✓ Sent')
+                                  : (lang === 'zh' ? '测试推送' : 'Test')}
+                              </span>
                             </button>
                           </div>
                         </div>
-
-                        {/* Detail row */}
-                        <div className="flex items-center gap-2 pt-2 border-t border-black/[0.04] dark:border-white/10">
-                          <div className="flex-1 font-mono text-xs text-[#6e6e73] dark:text-[#a1a1a6] truncate bg-black/[0.02] dark:bg-white/[0.02] px-3 py-1.5 rounded-xl">
-                            {notif.type === 'email'
-                              ? `To: ${notif.toEmail} | Provider: ${notif.emailProvider?.toUpperCase() || 'SMTP'}`
-                              : `${notif.webhookUrl || 'No Webhook URL'}`}
-                          </div>
-
-                          <button
-                            onClick={() => handleSendTestNotify(notif.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] dark:bg-white/10 dark:hover:bg-white/15 text-xs font-semibold transition-colors cursor-pointer flex-shrink-0"
-                          >
-                            <Send className="w-3 h-3 text-blue-500" />
-                            <span>
-                              {notifyTestStatus[notif.id] === 'sending'
-                                ? '...'
-                                : notifyTestStatus[notif.id] === 'success'
-                                ? (lang === 'zh' ? '✓ 发送成功' : '✓ Sent')
-                                : (lang === 'zh' ? '测试推送' : 'Test')}
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
@@ -1620,9 +1654,99 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   </div>
 
+                  {/* Danger Zone: Clear all data */}
+                  <div className="pt-4 border-t border-rose-200/60 dark:border-rose-500/20 space-y-3">
+                    <div className="font-semibold text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      <span>{lang === 'zh' ? '危险区域：数据清空与重置 (Danger Zone)' : 'Danger Zone: Clear Data & Reset'}</span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {/* Master Clear All Data */}
+                      <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-500/10 border border-rose-200/80 dark:border-rose-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <div className="font-semibold text-xs text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>{lang === 'zh' ? '彻底清空全部数据 (Master Reset)' : 'Master Reset: Clear All Data'}</span>
+                          </div>
+                          <div className="text-[11px] text-[#6e6e73] dark:text-[#a1a1a6] mt-0.5">
+                            {lang === 'zh' ? '彻底清空 Cloudflare KV 中的所有端点、事件、告警通道与历史打点，恢复初始空状态。' : 'Wipes all services, incidents, channels and history from Cloudflare KV.'}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleClearAllData}
+                          className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer flex-shrink-0 active:scale-95"
+                        >
+                          {lang === 'zh' ? '清空全部数据' : 'Clear All Data'}
+                        </button>
+                      </div>
+
+                      {/* Modular Clear Buttons */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.04] dark:border-white/[0.06] flex flex-col justify-between gap-2">
+                          <div>
+                            <div className="font-medium text-xs text-[#1d1d1f] dark:text-white">
+                              {lang === 'zh' ? '清空监控端点' : 'Clear Endpoints'}
+                            </div>
+                            <div className="text-[10.5px] text-[#86868b] dark:text-[#a1a1a6]">
+                              {lang === 'zh' ? `当前 ${services.length} 个端点` : `${services.length} services`}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleClearServices}
+                            disabled={services.length === 0}
+                            className="w-full py-1 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          >
+                            {lang === 'zh' ? '清空端点' : 'Clear'}
+                          </button>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.04] dark:border-white/[0.06] flex flex-col justify-between gap-2">
+                          <div>
+                            <div className="font-medium text-xs text-[#1d1d1f] dark:text-white">
+                              {lang === 'zh' ? '清空事件通告' : 'Clear Incidents'}
+                            </div>
+                            <div className="text-[10.5px] text-[#86868b] dark:text-[#a1a1a6]">
+                              {lang === 'zh' ? `当前 ${incidents.length} 条记录` : `${incidents.length} incidents`}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleClearIncidents}
+                            disabled={incidents.length === 0}
+                            className="w-full py-1 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          >
+                            {lang === 'zh' ? '清空事件' : 'Clear'}
+                          </button>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.04] dark:border-white/[0.06] flex flex-col justify-between gap-2">
+                          <div>
+                            <div className="font-medium text-xs text-[#1d1d1f] dark:text-white">
+                              {lang === 'zh' ? '清空告警通道' : 'Clear Channels'}
+                            </div>
+                            <div className="text-[10.5px] text-[#86868b] dark:text-[#a1a1a6]">
+                              {lang === 'zh' ? `当前 ${notifications.length} 个通道` : `${notifications.length} channels`}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleClearNotifications}
+                            disabled={notifications.length === 0}
+                            className="w-full py-1 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          >
+                            {lang === 'zh' ? '清空通道' : 'Clear'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="pt-3 border-t border-black/[0.04] dark:border-white/10 flex justify-end">
                     <button
-                      onClick={showSavedNotice}
+                      onClick={handleSaveGlobalSettings}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xs cursor-pointer active:scale-95"
                     >
                       <Save className="w-3.5 h-3.5" />
@@ -1926,37 +2050,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       className="w-full px-3 py-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/10 text-xs text-[#1d1d1f] dark:text-white focus:outline-none"
                     />
                   </div>
-
-                  <div className="space-y-1">
-                    <label className="font-medium text-xs text-[#1d1d1f] dark:text-white">
-                      {lang === 'zh' ? '目标 URL' : 'Target URL'}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="url"
-                        required
-                        placeholder="https://api.yourdomain.com/health"
-                        value={serviceFormData.url || ''}
-                        onChange={(e) => setServiceFormData({ ...serviceFormData, url: e.target.value })}
-                        className="flex-1 px-3 py-2 rounded-xl bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/10 text-xs font-mono text-[#1d1d1f] dark:text-white focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleTestProbe(serviceFormData.url || '')}
-                        disabled={isTestingProbe || !serviceFormData.url}
-                        className="px-3 py-2 rounded-xl bg-black/[0.04] dark:bg-white/10 font-semibold text-xs text-[#1d1d1f] dark:text-white hover:bg-black/[0.08] cursor-pointer disabled:opacity-50"
-                      >
-                        {isTestingProbe ? 'Testing...' : 'Test'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {testProbeResult && (
-                    <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/80 flex items-center justify-between text-xs font-semibold">
-                      <span>HTTP {testProbeResult.statusCode} OK</span>
-                      <span>Latency: {testProbeResult.latency} ms</span>
-                    </div>
-                  )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">

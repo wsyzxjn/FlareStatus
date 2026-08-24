@@ -10,151 +10,33 @@ import type {
   GlobalSiteSettings,
   AdminFullData,
   SslCertInfo,
+  CategoryConfig,
+  HttpMethod,
+  MonitorType,
 } from './types';
 
-const DEFAULT_SERVICES: ServiceItem[] = [
+// Zero mock services by default (pure clean slate driven by user config)
+const DEFAULT_SERVICES: ServiceItem[] = [];
+
+const DEFAULT_CATEGORIES: CategoryConfig[] = [
   {
-    id: 'api-gateway',
-    name: 'Cloudflare Edge API Gateway',
-    categoryId: 'core-edge',
-    url: 'https://cloudflare.com/cdn-cgi/trace',
-    enabled: true,
-    monitorType: 'http',
-    expectedStatus: 200,
-    acceptedStatusCodes: '200-299',
-    checkSslCert: true,
-    sslExpiryDaysWarning: 30,
-    notificationChannelIds: ['email-alerts', 'custom-webhook', 'feishu-bot'],
-    region: 'HKG • NRT • SJC • FRA',
-    description: 'Global distributed ingress, rate limiting and smart routing',
-  },
-  {
-    id: 'auth-service',
-    name: 'Authentication & Session Service',
-    categoryId: 'core-edge',
-    url: 'https://httpbin.org/status/200',
-    enabled: true,
-    monitorType: 'http',
-    expectedStatus: 200,
-    checkSslCert: true,
-    notificationChannelIds: ['email-alerts', 'feishu-bot'],
-    region: 'Global Edge Token Verify',
-    description: 'OAuth 2.1 token issuance, Passkey authentication & JWT verification',
-  },
-  {
-    id: 'dns-resolver',
-    name: 'Authoritative DNS & Edge Routing',
-    categoryId: 'core-edge',
-    url: 'https://1.1.1.1/dns-query',
-    enabled: true,
-    monitorType: 'dns',
-    expectedStatus: 200,
-    notificationChannelIds: ['email-alerts'],
-    region: '1.1.1.1 Anycast Network',
-    description: 'Sub-millisecond authoritative record lookup & failover',
-  },
-  {
-    id: 'cron-backup-job',
-    name: 'Database Backup Cron Job',
-    categoryId: 'data-storage',
-    url: 'push://backup-cron',
-    enabled: true,
-    monitorType: 'push',
-    pushToken: 'push_db_backup_tok9988',
-    heartbeatInterval: 60, // 60 minutes
-    lastHeartbeatPing: new Date().toISOString(),
-    notificationChannelIds: ['email-alerts', 'feishu-bot'],
-    region: 'Automated Cron Push',
-    description: 'Daily PostgreSQL database encryption & R2 backup task',
-  },
-  {
-    id: 'web-dashboard',
-    name: 'Web Management Console',
-    categoryId: 'web-apps',
-    url: 'https://httpbin.org/status/200',
-    enabled: true,
-    monitorType: 'keyword',
-    keywordMatch: 'origin',
-    expectedStatus: 200,
-    checkSslCert: true,
-    notificationChannelIds: ['feishu-bot'],
-    region: 'Cloudflare Pages CDN',
-    description: 'React SPA dashboard & real-time telemetry visualizer',
-  },
-  {
-    id: 'developer-docs',
-    name: 'Developer Documentation & SDK Portal',
-    categoryId: 'web-apps',
-    url: 'https://httpbin.org/status/200',
-    enabled: true,
-    monitorType: 'http',
-    expectedStatus: 200,
-    notificationChannelIds: ['feishu-bot'],
-    region: 'Global Edge Cache',
-    description: 'Interactive API reference, code playground and changelogs',
-  },
-  {
-    id: 'kv-storage',
-    name: 'Workers KV High-Speed Cache',
-    categoryId: 'data-storage',
-    url: 'https://httpbin.org/status/200',
-    enabled: true,
-    monitorType: 'http',
-    expectedStatus: 200,
-    notificationChannelIds: ['custom-webhook'],
-    region: 'Global Read Replicas',
-    description: 'Ultra low latency global key-value store',
+    id: 'default',
+    name: '默认分类 (Default)',
+    shortName: '默认',
+    description: '基础服务与生产 API 端点',
+    icon: 'server',
   },
 ];
 
 const DEFAULT_SETTINGS: GlobalSiteSettings = {
   siteTitle: 'Cloudflare Status',
-  siteSubtitle: 'Real-time telemetry and edge health across all 310+ global locations',
+  siteSubtitle: 'Real-time telemetry and edge health across all global locations',
   targetSla: 99.9,
   probeInterval: 2,
-  historyRetentionDays: 90,
+  historyRetentionDays: 30,
 };
 
-const DEFAULT_NOTIFICATIONS: NotificationChannel[] = [
-  {
-    id: 'email-alerts',
-    type: 'email',
-    name: 'SRE 紧急邮件告警 (Email Alerts)',
-    enabled: true,
-    defaultEnabled: true,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: false,
-    notifyOnSslExpiry: true,
-    toEmail: 'sre-duty@yourcompany.com',
-    fromEmail: 'status@notify.yourdomain.com',
-    emailProvider: 'resend',
-    apiKey: 're_123456789_abcdef',
-  },
-  {
-    id: 'custom-webhook',
-    type: 'webhook',
-    name: '自动化运维 Webhook (Ops Bot)',
-    enabled: true,
-    defaultEnabled: false,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: true,
-    webhookUrl: 'https://api.yourdomain.com/webhooks/status-events',
-    secretToken: 'Bearer sec_token_998877',
-  },
-  {
-    id: 'feishu-bot',
-    type: 'feishu',
-    name: '飞书群机器人 (Feishu / Lark)',
-    enabled: true,
-    defaultEnabled: true,
-    notifyOnDown: true,
-    notifyOnUp: true,
-    notifyOnDegraded: true,
-    webhookUrl: 'https://open.feishu.cn/open-apis/bot/v2/hook/xxxx-xxxx',
-  },
-];
+const DEFAULT_NOTIFICATIONS: NotificationChannel[] = [];
 
 interface Env {
   STATUS_KV?: KVNamespace;
@@ -162,49 +44,26 @@ interface Env {
   ASSETS?: Fetcher;
 }
 
-// Generate realistic simulated past 90 days history for MVP
-function generateMockHistory(isHealthy: boolean = true): DayHistory[] {
+// Generate clean 30-day baseline for newly added services
+function generateCleanHistory(baseLatency: number): DayHistory[] {
   const days: DayHistory[] = [];
   const now = new Date();
-  for (let i = 89; i >= 0; i--) {
+  for (let i = 29; i >= 0; i--) {
     const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const dateStr = d.toISOString().split('T')[0];
     
-    let status: ServiceStatus = 'operational';
-    let uptime = 100;
-    let avgLatency = Math.floor(18 + Math.random() * 14);
-    let note: string | undefined = undefined;
-
-    if (i === 12 && !isHealthy) {
-      status = 'degraded';
-      uptime = 98.4;
-      avgLatency = 120;
-      note = 'Elevated latency during global BGP re-routing (12 mins)';
-    } else if (i === 42) {
-      status = 'degraded';
-      uptime = 99.1;
-      avgLatency = 95;
-      note = 'Intermittent upstream packet loss in Tokyo region (8 mins)';
-    } else if (i === 64) {
-      status = 'maintenance';
-      uptime = 99.8;
-      avgLatency = 35;
-      note = 'Scheduled database index migration window';
-    }
-
     days.push({
       date: dateStr,
-      status,
-      uptime,
-      avgLatency,
-      incidentsCount: status !== 'operational' ? 1 : 0,
-      note,
+      status: 'operational',
+      uptime: 100,
+      avgLatency: baseLatency,
+      incidentsCount: 0,
     });
   }
   return days;
 }
 
-function generateMock24hLatencies(baseLatency: number): LatencyPoint[] {
+function generateClean24hLatencies(baseLatency: number): LatencyPoint[] {
   const points: LatencyPoint[] = [];
   const now = Date.now();
   for (let i = 24; i >= 0; i--) {
@@ -213,10 +72,9 @@ function generateMock24hLatencies(baseLatency: number): LatencyPoint[] {
       minute: '2-digit',
       hour12: false,
     });
-    const jitter = (Math.random() - 0.5) * 8;
     points.push({
       time: timeStr,
-      latency: Math.max(10, Math.round(baseLatency + jitter)),
+      latency: Math.max(1, baseLatency),
     });
   }
   return points;
@@ -236,8 +94,8 @@ function isAcceptedStatus(statusCode: number, pattern?: string, fallback: number
   return statusCode === fallback;
 }
 
-// Generate SVG Status Badge (Shields.io style)
-function generateSvgBadge(serviceName: string, status: string, uptime: string, isHealthy: boolean): string {
+// Generate SVG Status Badge
+function generateSvgBadge(serviceName: string, isHealthy: boolean, uptime: string): string {
   const label = serviceName.length > 18 ? serviceName.substring(0, 16) + '..' : serviceName;
   const value = isHealthy ? `up ${uptime}` : 'down';
   const color = isHealthy ? '#34c759' : '#ff3b30';
@@ -277,11 +135,10 @@ async function probeEndpoint(service: ServiceItem): Promise<{
   error?: string;
   sslInfo?: SslCertInfo;
 }> {
-  // Handle Passive Heartbeat Push Monitor
   if (service.monitorType === 'push') {
     const lastPing = service.lastHeartbeatPing ? new Date(service.lastHeartbeatPing).getTime() : 0;
     const intervalMs = (service.heartbeatInterval || 60) * 60 * 1000;
-    const isAlive = Date.now() - lastPing <= intervalMs;
+    const isAlive = lastPing > 0 && Date.now() - lastPing <= intervalMs;
 
     return {
       status: isAlive ? 'operational' : 'outage',
@@ -344,23 +201,10 @@ async function probeEndpoint(service: ServiceItem): Promise<{
       status = 'degraded';
     }
 
-    // Simulated SSL Cert Info (90~180 days valid)
-    let sslInfo: SslCertInfo | undefined = undefined;
-    if (service.url.startsWith('https://')) {
-      sslInfo = {
-        valid: true,
-        daysRemaining: 184,
-        validTo: '2027-02-24T00:00:00.000Z',
-        issuer: "Let's Encrypt / Cloudflare Edge CA",
-        expiresSoon: false,
-      };
-    }
-
     return {
       status,
       latency,
       statusCode: res.status,
-      sslInfo,
     };
   } catch (err: any) {
     let status: ServiceStatus = service.upsideDown ? 'operational' : 'outage';
@@ -384,6 +228,19 @@ async function getStoredServices(env: Env): Promise<ServiceItem[]> {
     }
   }
   return DEFAULT_SERVICES;
+}
+
+// Helper to get categories from KV or fallback
+async function getStoredCategories(env: Env): Promise<CategoryConfig[]> {
+  if (env.STATUS_KV) {
+    const raw = await env.STATUS_KV.get('config:categories');
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch (_e) {}
+    }
+  }
+  return DEFAULT_CATEGORIES;
 }
 
 export default {
@@ -466,7 +323,7 @@ export default {
 
       let serviceName = 'Status';
       let isHealthy = true;
-      let uptime = '99.98%';
+      let uptime = '100%';
 
       if (serviceId === 'overall' || serviceId === 'all') {
         serviceName = 'System Status';
@@ -478,7 +335,7 @@ export default {
         }
       }
 
-      const svg = generateSvgBadge(serviceName, isHealthy ? 'operational' : 'outage', uptime, isHealthy);
+      const svg = generateSvgBadge(serviceName, isHealthy, uptime);
       return new Response(svg, {
         headers: {
           'Content-Type': 'image/svg+xml; charset=utf-8',
@@ -499,7 +356,7 @@ export default {
         const isUp = svc.enabled ? 1 : 0;
         prometheusText += `probe_success{service="${svc.id}",name="${svc.name}",category="${svc.categoryId}"} ${isUp}\n`;
         prometheusText += `probe_duration_seconds{service="${svc.id}"} 0.018\n`;
-        prometheusText += `service_uptime_ratio{service="${svc.id}"} 0.9998\n`;
+        prometheusText += `service_uptime_ratio{service="${svc.id}"} 1.0\n`;
       }
 
       return new Response(prometheusText, {
@@ -515,8 +372,9 @@ export default {
     // =========================================================================
     if (url.pathname === '/api/status') {
       const services = await getStoredServices(env);
-      let cached: Record<string, any> | null = null;
+      const configuredCategories = await getStoredCategories(env);
 
+      let cached: Record<string, any> | null = null;
       if (env.STATUS_KV) {
         const raw = await env.STATUS_KV.get('latest_probe_results');
         if (raw) {
@@ -526,13 +384,26 @@ export default {
         }
       }
 
+      let incidents: Incident[] = [];
+      if (env.STATUS_KV) {
+        const rawInc = await env.STATUS_KV.get('config:incidents');
+        if (rawInc) {
+          try {
+            incidents = JSON.parse(rawInc);
+          } catch (_e) {}
+        }
+      }
+
+      const activeIncidents = incidents.filter((i) => i.status !== 'resolved');
+      const pastIncidents = incidents.filter((i) => i.status === 'resolved');
+
       const categoriesMap: Record<string, ServiceLiveState[]> = {};
       const activeServices = services.filter((s) => s.enabled);
 
       for (const item of activeServices) {
         const probe = cached?.[item.id];
         const status: ServiceStatus = probe?.status || 'operational';
-        const latency = probe?.latency || Math.floor(16 + Math.random() * 18);
+        const latency = probe?.latency || 18;
 
         const liveState: ServiceLiveState = {
           id: item.id,
@@ -542,24 +413,15 @@ export default {
           status,
           monitorType: item.monitorType || 'http',
           currentLatency: latency,
-          uptime90d: 99.98,
+          uptime90d: 100,
           lastChecked: probe?.timestamp || new Date().toISOString(),
           region: item.region || 'Anycast Global',
           endpointUrl: item.url,
           description: item.description,
-          sslInfo: item.url.startsWith('https://')
-            ? {
-                valid: true,
-                daysRemaining: 184,
-                validTo: '2027-02-24T00:00:00.000Z',
-                issuer: "Let's Encrypt / Cloudflare Edge CA",
-                expiresSoon: false,
-              }
-            : undefined,
           lastHeartbeatPing: item.lastHeartbeatPing,
           pushToken: item.pushToken,
-          recentLatencies: generateMock24hLatencies(latency),
-          history90d: generateMockHistory(true),
+          recentLatencies: generateClean24hLatencies(latency),
+          history90d: generateCleanHistory(latency),
         };
 
         if (!categoriesMap[item.categoryId]) {
@@ -568,70 +430,37 @@ export default {
         categoriesMap[item.categoryId].push(liveState);
       }
 
-      const categories = Object.keys(categoriesMap).map((catId) => {
-        let name = catId;
-        let shortName = catId;
-        let icon = 'server';
-
-        if (catId === 'core-edge') {
-          name = 'Core Edge Infrastructure';
-          shortName = 'Core Edge';
-          icon = 'server';
-        } else if (catId === 'web-apps') {
-          name = 'Web & Client Applications';
-          shortName = 'Web & Apps';
-          icon = 'globe';
-        } else if (catId === 'data-storage') {
-          name = 'Data & Distributed Storage';
-          shortName = 'Data & Storage';
-          icon = 'database';
-        }
-
-        return {
-          id: catId,
-          name,
-          shortName,
-          icon,
-          services: categoriesMap[catId],
-        };
-      });
+      const categories = configuredCategories
+        .map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+          shortName: cat.shortName || cat.name,
+          description: cat.description,
+          icon: cat.icon || 'server',
+          services: categoriesMap[cat.id] || [],
+        }))
+        .filter((cat) => cat.services.length > 0);
 
       const allLiveServices = Object.values(categoriesMap).flat();
       const totalLiveCount = allLiveServices.length;
       const dynamicAvgLatency = totalLiveCount > 0
         ? Math.round(allLiveServices.reduce((sum, s) => sum + s.currentLatency, 0) / totalLiveCount)
-        : 20;
+        : 0;
       const dynamicAvgUptime = totalLiveCount > 0
         ? Number((allLiveServices.reduce((sum, s) => sum + s.uptime90d, 0) / totalLiveCount).toFixed(2))
         : 100;
 
       const responsePayload: SystemStatusResponse = {
-        systemStatus: 'operational',
-        headline: 'All Systems Operational',
+        systemStatus: activeIncidents.length > 0
+          ? activeIncidents.some((i) => i.severity === 'critical') ? 'outage' : 'degraded'
+          : 'operational',
+        headline: activeIncidents.length > 0 ? 'Service Incident in Progress' : 'All Systems Operational',
         lastUpdated: new Date().toISOString(),
         overallUptime90d: dynamicAvgUptime,
         avgLatencyMs: dynamicAvgLatency,
         categories,
-        activeIncidents: [],
-        pastIncidents: [
-          {
-            id: 'inc-0822',
-            title: 'Scheduled Edge SSL Protocol & Cipher Suite Upgrade',
-            status: 'resolved',
-            severity: 'maintenance',
-            affectedServices: ['api-gateway', 'web-dashboard'],
-            createdAt: '2026-08-20T02:00:00Z',
-            updatedAt: '2026-08-20T03:15:00Z',
-            resolvedAt: '2026-08-20T03:15:00Z',
-            updates: [
-              {
-                time: '2026-08-20 03:15 UTC',
-                status: 'resolved',
-                message: 'All TLS cipher updates applied successfully across global edge PoPs.',
-              },
-            ],
-          },
-        ],
+        activeIncidents,
+        pastIncidents,
       };
 
       return new Response(JSON.stringify(responsePayload), {
@@ -672,6 +501,7 @@ export default {
     // =========================================================================
     if (url.pathname === '/api/admin/data' && request.method === 'GET') {
       const services = await getStoredServices(env);
+      const categories = await getStoredCategories(env);
 
       let incidents: Incident[] = [];
       let notifications: NotificationChannel[] = DEFAULT_NOTIFICATIONS;
@@ -694,11 +524,7 @@ export default {
 
       const adminData: AdminFullData & { userEmail: string } = {
         userEmail: accessUserEmail,
-        categories: [
-          { id: 'core-edge', name: 'Core Edge Infrastructure', shortName: 'Core Edge', icon: 'server' },
-          { id: 'web-apps', name: 'Web & Client Applications', shortName: 'Web & Apps', icon: 'globe' },
-          { id: 'data-storage', name: 'Data & Distributed Storage', shortName: 'Data & Storage', icon: 'database' },
-        ],
+        categories,
         services,
         incidents,
         notifications,
@@ -717,6 +543,100 @@ export default {
         await env.STATUS_KV.put('config:services', JSON.stringify(body));
       }
       return new Response(JSON.stringify({ success: true, count: body.length }), {
+        headers: corsHeaders,
+      });
+    }
+
+    // =========================================================================
+    // Admin Save Categories: POST /api/admin/categories
+    // =========================================================================
+    if (url.pathname === '/api/admin/categories' && request.method === 'POST') {
+      const body = await request.json() as CategoryConfig[];
+      if (env.STATUS_KV) {
+        await env.STATUS_KV.put('config:categories', JSON.stringify(body));
+      }
+      return new Response(JSON.stringify({ success: true, count: body.length }), {
+        headers: corsHeaders,
+      });
+    }
+
+    // =========================================================================
+    // Admin Save Incidents: POST /api/admin/incidents
+    // =========================================================================
+    if (url.pathname === '/api/admin/incidents' && request.method === 'POST') {
+      const body = await request.json() as Incident[];
+      if (env.STATUS_KV) {
+        await env.STATUS_KV.put('config:incidents', JSON.stringify(body));
+      }
+      return new Response(JSON.stringify({ success: true, count: body.length }), {
+        headers: corsHeaders,
+      });
+    }
+
+    // =========================================================================
+    // Admin Save Notifications: POST /api/admin/notifications
+    // =========================================================================
+    if (url.pathname === '/api/admin/notifications' && request.method === 'POST') {
+      const body = await request.json() as NotificationChannel[];
+      if (env.STATUS_KV) {
+        await env.STATUS_KV.put('config:notifications', JSON.stringify(body));
+      }
+      return new Response(JSON.stringify({ success: true, count: body.length }), {
+        headers: corsHeaders,
+      });
+    }
+
+    // =========================================================================
+    // Admin Save Settings: POST /api/admin/settings
+    // =========================================================================
+    if (url.pathname === '/api/admin/settings' && request.method === 'POST') {
+      const body = await request.json() as GlobalSiteSettings;
+      if (env.STATUS_KV) {
+        await env.STATUS_KV.put('config:settings', JSON.stringify(body));
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: corsHeaders,
+      });
+    }
+
+    // =========================================================================
+    // Admin Clear Data: POST /api/admin/clear-data
+    // =========================================================================
+    if (url.pathname === '/api/admin/clear-data' && request.method === 'POST') {
+      let scope = 'all';
+      try {
+        const body = await request.json() as { scope?: string };
+        if (body && body.scope) scope = body.scope;
+      } catch (_e) {}
+
+      if (env.STATUS_KV) {
+        if (scope === 'all') {
+          let cursor: string | undefined = undefined;
+          do {
+            const listRes: KVNamespaceListResult<unknown> = await env.STATUS_KV.list({ cursor });
+            for (const key of listRes.keys) {
+              await env.STATUS_KV.delete(key.name);
+            }
+            cursor = listRes.list_complete ? undefined : listRes.cursor;
+          } while (cursor);
+
+          await env.STATUS_KV.put('config:services', JSON.stringify([]));
+          await env.STATUS_KV.put('config:categories', JSON.stringify(DEFAULT_CATEGORIES));
+          await env.STATUS_KV.put('config:incidents', JSON.stringify([]));
+          await env.STATUS_KV.put('config:notifications', JSON.stringify([]));
+          await env.STATUS_KV.put('config:settings', JSON.stringify(DEFAULT_SETTINGS));
+          await env.STATUS_KV.put('latest_probe_results', JSON.stringify([]));
+        } else if (scope === 'services') {
+          await env.STATUS_KV.put('config:services', JSON.stringify([]));
+          await env.STATUS_KV.put('latest_probe_results', JSON.stringify([]));
+        } else if (scope === 'incidents') {
+          await env.STATUS_KV.put('config:incidents', JSON.stringify([]));
+        } else if (scope === 'notifications') {
+          await env.STATUS_KV.put('config:notifications', JSON.stringify([]));
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, scope, message: 'Data cleared successfully' }), {
         headers: corsHeaders,
       });
     }
@@ -769,6 +689,8 @@ export default {
           'POST /api/admin/probe',
           'GET /api/admin/data',
           'POST /api/admin/services',
+          'POST /api/admin/categories',
+          'POST /api/admin/incidents',
         ],
       }),
       { headers: corsHeaders }
