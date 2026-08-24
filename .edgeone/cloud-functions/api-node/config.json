@@ -1,0 +1,79 @@
+{
+  "routes": [
+    {
+      "src": "^/api/admin/categories$",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "src": "^/api/admin/clear-data$",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "src": "^/api/admin/data$",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "src": "^/api/admin/incidents$",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "src": "^/api/admin/notifications$",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "src": "^/api/admin/services$",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "src": "^/api/admin/settings$",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "src": "^/api/admin/test-probe$",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "src": "^/api/badge/([^/]*)?$",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "src": "^/api/push/([^/]*)?$"
+    },
+    {
+      "src": "^/api/cron-probe$"
+    },
+    {
+      "src": "^/api/status$",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "src": "^/api/(.*)$"
+    },
+    {
+      "src": "^/metrics$",
+      "methods": [
+        "GET"
+      ]
+    }
+  ]
+}

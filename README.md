@@ -161,6 +161,23 @@ Then run `npx wrangler deploy`.
 
 ---
 
+### 🌐 Deploying to Tencent EdgeOne Pages (Makers)
+
+FlareStatus runs natively on **Tencent EdgeOne Pages (Makers)** using Node.js Cloud Functions, Built-in Blob Storage (`@edgeone/pages-blob`), and Scheduled Cron:
+
+1. Log in to the [Tencent EdgeOne Pages Console](https://console.cloud.tencent.com/edgeone/pages) (or [EdgeOne Makers](https://pages.edgeone.ai/)).
+2. **Connect Git & Deploy**:
+   - Click **Add Project** -> **Import from GitHub** -> Select your `FlareStatus` repository.
+   - The platform will automatically detect `edgeone.json`, run the Vite build, mount Cloud Functions (`./cloud-functions/api/`), initialize EdgeOne Blob Storage (`@edgeone/pages-blob`), and schedule the 2-minute Cron trigger (`*/2 * * * *`).
+3. **Or Deploy via CLI**:
+   ```bash
+   edgeone makers deploy -n flare-status
+   ```
+4. **Bind Custom Domain**:
+   - Add your custom domain in the project settings for automatic EdgeOne Anycast CDN acceleration and free SSL.
+
+---
+
 ## 🔒 Cloudflare Zero Trust (Access) Guide
 
 Protect your `/admin*` routes with Cloudflare Access in under 2 minutes:
