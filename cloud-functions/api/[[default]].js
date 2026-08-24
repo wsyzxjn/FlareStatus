@@ -1,7 +1,10 @@
 // =========================================================================
-// FlareStatus — EdgeOne Pages (Makers) Edge Function Backend
-// Runs on Tencent EdgeOne V8 Edge Compute with KV Storage & Scheduled Cron
+// FlareStatus — EdgeOne Pages (Makers) Cloud Function Backend
+// Node.js v20.x Runtime with Built-in EdgeOne Blob Storage (@edgeone/pages-blob)
+// 100% In-Platform • Zero External Dependencies • Zero Console Pre-approval
 // =========================================================================
+
+import { getStore } from '@edgeone/pages-blob';
 
 const DEFAULT_SERVICES = [];
 
@@ -25,12 +28,14 @@ const DEFAULT_SETTINGS = {
 
 const DEFAULT_NOTIFICATIONS = [];
 
-// Helper to access globally bound KV Namespace on EdgeOne
-function getKv() {
-  if (typeof STATUS_KV !== 'undefined') return STATUS_KV;
-  if (typeof my_kv !== 'undefined') return my_kv;
-  if (typeof KV !== 'undefined') return KV;
-  return null;
+// Lazy-initialize EdgeOne Blob Store (zero-configuration, auto-provisioned)
+function getBlobStore() {
+  try {
+    return getStore('flarestatus-store');
+  } catch (err) {
+    console.warn('[FlareStatus] Failed to get EdgeOne BlobStore:', err);
+    return null;
+  }
 }
 
 // Generate clean 30-day baseline for newly added services
@@ -137,7 +142,7 @@ async function probeEndpoint(service) {
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const headers = {
-      'User-Agent': 'FlareStatusProber/1.0 (EdgeOne Pages V8 Edge Compute)',
+      'User-Agent': 'FlareStatusProber/1.0 (EdgeOne Pages Node.js Cloud Functions)',
     };
 
     if (service.headers) {
@@ -196,27 +201,31 @@ async function probeEndpoint(service) {
   }
 }
 
-async function getStoredServices(kv) {
-  if (kv) {
-    const raw = await kv.get('config:services', 'json');
-    if (raw) return raw;
+async function getStoredServices(store) {
+  if (store) {
+    try {
+      const data = await store.get('config/services', { type: 'json' });
+      if (data && Array.isArray(data)) return data;
+    } catch (_e) {}
   }
   return DEFAULT_SERVICES;
 }
 
-async function getStoredCategories(kv) {
-  if (kv) {
-    const raw = await kv.get('config:categories', 'json');
-    if (raw) return raw;
+async function getStoredCategories(store) {
+  if (store) {
+    try {
+      const data = await store.get('config/categories', { type: 'json' });
+      if (data && Array.isArray(data)) return data;
+    } catch (_e) {}
   }
   return DEFAULT_CATEGORIES;
 }
 
-// Main Edge Function onRequest handler
-export default async function onRequest(context) {
+// Main Cloud Function Request Handler
+export async function onRequest(context) {
   const { request } = context;
   const url = new URL(request.url);
-  const kv = getKv();
+  const store = getBlobStore();
 
   const corsHeaders = {
     'Content-Type': 'application/json',
@@ -239,7 +248,7 @@ export default async function onRequest(context) {
       return new Response(JSON.stringify({ error: 'Missing push token' }), { status: 400, headers: corsHeaders });
     }
 
-    const services = await getStoredServices(kv);
+    const services = await getStoredServices(store);
     const target = services.find((s) => s.pushToken === token || (s.url && s.url.includes(token)));
 
     if (!target) {
@@ -247,8 +256,8 @@ export default async function onRequest(context) {
     }
 
     target.lastHeartbeatPing = new Date().toISOString();
-    if (kv) {
-      await kv.put('config:services', JSON.stringify(services));
+    if (store) {
+      await store.setJSON('config/services', services);
     }
 
     return new Response(JSON.stringify({ ok: true, token, receivedAt: target.lastHeartbeatPing }), { headers: corsHeaders });
@@ -258,7 +267,7 @@ export default async function onRequest(context) {
   // 2. Cron Probe Trigger: POST/GET /api/cron-probe
   // =========================================================================
   if (url.pathname === '/api/cron-probe' || url.pathname === '/api/cron/probe') {
-    const services = await getStoredServices(kv);
+    const services = await getStoredServices(store);
     const enabledServices = services.filter((s) => s.enabled);
     const results = [];
 
@@ -276,8 +285,8 @@ export default async function onRequest(context) {
       });
     }
 
-    if (kv) {
-      await kv.put('latest_probe_results', JSON.stringify(results));
+    if (store) {
+      await store.setJSON('state/latest_probe_results', results);
     }
 
     return new Response(
@@ -296,7 +305,7 @@ export default async function onRequest(context) {
   // =========================================================================
   if (url.pathname.startsWith('/api/badge/')) {
     const badgeId = url.pathname.replace('/api/badge/', '').trim();
-    const services = await getStoredServices(kv);
+    const services = await getStoredServices(store);
 
     let serviceName = 'Service';
     let isHealthy = true;
@@ -325,49 +334,30 @@ export default async function onRequest(context) {
   }
 
   // =========================================================================
-  // 4. Prometheus Scrape: GET /metrics
-  // =========================================================================
-  if (url.pathname === '/metrics') {
-    const services = await getStoredServices(kv);
-    let metricsOutput = '# HELP flarestatus_service_up Status of service (1 = UP, 0 = DOWN)\n';
-    metricsOutput += '# TYPE flarestatus_service_up gauge\n';
-
-    for (const svc of services) {
-      const isUp = svc.enabled ? 1 : 0;
-      const safeId = svc.id.replace(/"/g, '');
-      const safeName = svc.name.replace(/"/g, '');
-      metricsOutput += `flarestatus_service_up{id="${safeId}",name="${safeName}"} ${isUp}\n`;
-    }
-
-    return new Response(metricsOutput, {
-      headers: {
-        'Content-Type': 'text/plain; version=0.0.4; charset=utf-8',
-        'Cache-Control': 'no-store',
-      },
-    });
-  }
-
-  // =========================================================================
-  // 5. Public Status Feed: GET /api/status
+  // 4. Public Status Feed: GET /api/status
   // =========================================================================
   if (url.pathname === '/api/status' && request.method === 'GET') {
-    const services = await getStoredServices(kv);
-    const categories = await getStoredCategories(kv);
+    const services = await getStoredServices(store);
+    const categories = await getStoredCategories(store);
 
     let latestProbes = [];
-    if (kv) {
-      const raw = await kv.get('latest_probe_results', 'json');
-      if (raw) latestProbes = raw;
+    if (store) {
+      try {
+        const raw = await store.get('state/latest_probe_results', { type: 'json' });
+        if (raw && Array.isArray(raw)) latestProbes = raw;
+      } catch (_e) {}
     }
 
     let activeIncidents = [];
     let pastIncidents = [];
-    if (kv) {
-      const rawInc = await kv.get('config:incidents', 'json');
-      if (rawInc) {
-        activeIncidents = rawInc.filter((i) => i.status !== 'resolved');
-        pastIncidents = rawInc.filter((i) => i.status === 'resolved');
-      }
+    if (store) {
+      try {
+        const rawInc = await store.get('config/incidents', { type: 'json' });
+        if (rawInc && Array.isArray(rawInc)) {
+          activeIncidents = rawInc.filter((i) => i.status !== 'resolved');
+          pastIncidents = rawInc.filter((i) => i.status === 'resolved');
+        }
+      } catch (_e) {}
     }
 
     const liveServices = services.map((svc) => {
@@ -417,23 +407,25 @@ export default async function onRequest(context) {
   }
 
   // =========================================================================
-  // 6. Admin Data: GET /api/admin/data
+  // 5. Admin Data: GET /api/admin/data
   // =========================================================================
   if (url.pathname === '/api/admin/data' && request.method === 'GET') {
-    const services = await getStoredServices(kv);
-    const categories = await getStoredCategories(kv);
+    const services = await getStoredServices(store);
+    const categories = await getStoredCategories(store);
 
     let incidents = [];
     let notifications = DEFAULT_NOTIFICATIONS;
     let settings = DEFAULT_SETTINGS;
 
-    if (kv) {
-      const rawInc = await kv.get('config:incidents', 'json');
-      if (rawInc) incidents = rawInc;
-      const rawNotif = await kv.get('config:notifications', 'json');
-      if (rawNotif) notifications = rawNotif;
-      const rawSet = await kv.get('config:settings', 'json');
-      if (rawSet) settings = rawSet;
+    if (store) {
+      try {
+        const rawInc = await store.get('config/incidents', { type: 'json' });
+        if (rawInc && Array.isArray(rawInc)) incidents = rawInc;
+        const rawNotif = await store.get('config/notifications', { type: 'json' });
+        if (rawNotif && Array.isArray(rawNotif)) notifications = rawNotif;
+        const rawSet = await store.get('config/settings', { type: 'json' });
+        if (rawSet) settings = rawSet;
+      } catch (_e) {}
     }
 
     return new Response(
@@ -450,62 +442,62 @@ export default async function onRequest(context) {
   }
 
   // =========================================================================
-  // 7. Admin Services: POST /api/admin/services
+  // 6. Admin Services: POST /api/admin/services
   // =========================================================================
   if (url.pathname === '/api/admin/services' && request.method === 'POST') {
     const body = await request.json();
-    if (kv) {
-      await kv.put('config:services', JSON.stringify(body));
+    if (store) {
+      await store.setJSON('config/services', body);
     }
     return new Response(JSON.stringify({ success: true, count: body.length }), { headers: corsHeaders });
   }
 
   // =========================================================================
-  // 8. Admin Categories: POST /api/admin/categories
+  // 7. Admin Categories: POST /api/admin/categories
   // =========================================================================
   if (url.pathname === '/api/admin/categories' && request.method === 'POST') {
     const body = await request.json();
-    if (kv) {
-      await kv.put('config:categories', JSON.stringify(body));
+    if (store) {
+      await store.setJSON('config/categories', body);
     }
     return new Response(JSON.stringify({ success: true, count: body.length }), { headers: corsHeaders });
   }
 
   // =========================================================================
-  // 9. Admin Incidents: POST /api/admin/incidents
+  // 8. Admin Incidents: POST /api/admin/incidents
   // =========================================================================
   if (url.pathname === '/api/admin/incidents' && request.method === 'POST') {
     const body = await request.json();
-    if (kv) {
-      await kv.put('config:incidents', JSON.stringify(body));
+    if (store) {
+      await store.setJSON('config/incidents', body);
     }
     return new Response(JSON.stringify({ success: true, count: body.length }), { headers: corsHeaders });
   }
 
   // =========================================================================
-  // 10. Admin Notifications: POST /api/admin/notifications
+  // 9. Admin Notifications: POST /api/admin/notifications
   // =========================================================================
   if (url.pathname === '/api/admin/notifications' && request.method === 'POST') {
     const body = await request.json();
-    if (kv) {
-      await kv.put('config:notifications', JSON.stringify(body));
+    if (store) {
+      await store.setJSON('config/notifications', body);
     }
     return new Response(JSON.stringify({ success: true, count: body.length }), { headers: corsHeaders });
   }
 
   // =========================================================================
-  // 11. Admin Settings: POST /api/admin/settings
+  // 10. Admin Settings: POST /api/admin/settings
   // =========================================================================
   if (url.pathname === '/api/admin/settings' && request.method === 'POST') {
     const body = await request.json();
-    if (kv) {
-      await kv.put('config:settings', JSON.stringify(body));
+    if (store) {
+      await store.setJSON('config/settings', body);
     }
     return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
   }
 
   // =========================================================================
-  // 12. Admin Clear Data: POST /api/admin/clear-data
+  // 11. Admin Clear Data: POST /api/admin/clear-data
   // =========================================================================
   if (url.pathname === '/api/admin/clear-data' && request.method === 'POST') {
     let scope = 'all';
@@ -514,30 +506,23 @@ export default async function onRequest(context) {
       if (body?.scope) scope = body.scope;
     } catch (_e) {}
 
-    if (kv) {
+    if (store) {
       if (scope === 'all') {
-        let cursor = undefined;
-        do {
-          const listRes = await kv.list({ cursor });
-          for (const key of listRes.keys) {
-            await kv.delete(key.name);
-          }
-          cursor = listRes.complete ? undefined : listRes.cursor;
-        } while (cursor);
-
-        await kv.put('config:services', JSON.stringify([]));
-        await kv.put('config:categories', JSON.stringify(DEFAULT_CATEGORIES));
-        await kv.put('config:incidents', JSON.stringify([]));
-        await kv.put('config:notifications', JSON.stringify([]));
-        await kv.put('config:settings', JSON.stringify(DEFAULT_SETTINGS));
-        await kv.put('latest_probe_results', JSON.stringify([]));
+        try {
+          await store.delete('config/services');
+          await store.delete('config/categories');
+          await store.delete('config/incidents');
+          await store.delete('config/notifications');
+          await store.delete('config/settings');
+          await store.delete('state/latest_probe_results');
+        } catch (_e) {}
       } else if (scope === 'services') {
-        await kv.put('config:services', JSON.stringify([]));
-        await kv.put('latest_probe_results', JSON.stringify([]));
+        await store.delete('config/services');
+        await store.delete('state/latest_probe_results');
       } else if (scope === 'incidents') {
-        await kv.put('config:incidents', JSON.stringify([]));
+        await store.delete('config/incidents');
       } else if (scope === 'notifications') {
-        await kv.put('config:notifications', JSON.stringify([]));
+        await store.delete('config/notifications');
       }
     }
 
@@ -547,7 +532,7 @@ export default async function onRequest(context) {
   }
 
   // =========================================================================
-  // 13. Admin Test Probe: POST /api/admin/test-probe
+  // 12. Admin Test Probe: POST /api/admin/test-probe
   // =========================================================================
   if (url.pathname === '/api/admin/test-probe' && request.method === 'POST') {
     const body = await request.json();
@@ -563,16 +548,15 @@ export default async function onRequest(context) {
     return new Response(JSON.stringify(probeResult), { headers: corsHeaders });
   }
 
-  // Default API response
+  // Default API catch-all
   return new Response(
     JSON.stringify({
-      message: 'FlareStatus API (EdgeOne Pages Edge Functions)',
+      message: 'FlareStatus API (EdgeOne Pages Node.js Cloud Functions + Blob Storage)',
       endpoints: [
         'GET /api/status',
         'POST /api/cron-probe',
         'GET /api/push/:token',
         'GET /api/badge/:serviceId',
-        'GET /metrics',
         'GET /api/admin/data',
         'POST /api/admin/services',
         'POST /api/admin/categories',

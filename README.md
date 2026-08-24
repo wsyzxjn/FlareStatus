@@ -164,15 +164,14 @@ Then run `npx wrangler deploy`.
 
 ### 🌐 Deploying to Tencent EdgeOne Pages (Makers)
 
-FlareStatus natively supports **Tencent EdgeOne Pages (Makers)** with V8 Edge Functions, KV Storage, and built-in Scheduled Cron:
+FlareStatus natively supports **Tencent EdgeOne Pages (Makers)** powered by Cloud Functions (Node.js v20.x), Built-in Blob Storage, and Scheduled Cron:
 
 1. Log in to the [Tencent EdgeOne Pages Console](https://console.cloud.tencent.com/edgeone/pages) (or [EdgeOne Makers](https://pages.edgeone.ai/)).
-2. **Enable KV Storage**:
-   - Go to **KV Storage** -> **Create Namespace** (e.g. `flarestatus-kv`).
-   - Bind the namespace to your project with the variable name **`STATUS_KV`**.
-3. **Connect Git & Deploy**:
+2. **Connect Git & Deploy**:
    - Click **Add Project** -> **Import from GitHub** -> Select your `FlareStatus` repository.
-   - The platform will automatically detect `edgeone.json`, configure the Vite build, mount Edge Functions (`./edge-functions/api/`), and schedule the 2-minute Cron trigger (`*/2 * * * *`).
+   - The platform will automatically detect `edgeone.json`, run the Vite build, mount Cloud Functions (`./cloud-functions/api/`), initialize EdgeOne Blob Storage (`@edgeone/pages-blob`), and schedule the 2-minute Cron trigger (`*/2 * * * *`).
+3. **Zero Configuration Needed**:
+   - **No KV approval required**: Blob Storage initializes automatically on first call with 1 GB free capacity.
 4. **Bind Custom Domain**:
    - Add your custom domain in the project settings for automatic EdgeOne Anycast CDN acceleration and free SSL.
 
