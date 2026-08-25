@@ -68,6 +68,10 @@ export function AdminAuth({ children, lang, onBack }: AdminAuthProps) {
   if (session?.authenticated) return <>{children(logout)}</>;
 
   const zh = lang === 'zh';
+  // Until the session request resolves we cannot tell an authenticated admin
+  // from an anonymous visitor. Rendering the sign-in form during that window
+  // made the login screen flash before the panel appeared.
+  const resolved = session !== null;
   return (
     <main className="min-h-screen bg-[#f5f5f7] dark:bg-[#111113] text-[#1d1d1f] dark:text-[#f5f5f7] flex flex-col">
       <header className="h-14 flex items-center px-5 sm:px-8 border-b border-black/[0.06] dark:border-white/[0.08]">
@@ -95,46 +99,59 @@ export function AdminAuth({ children, lang, onBack }: AdminAuthProps) {
 
         <div className="flex items-center px-6 py-16 sm:px-12 lg:px-14 bg-[#fbfbfd] dark:bg-[#18181b]">
           <div className="w-full max-w-sm mx-auto">
-            <div className="w-12 h-12 rounded-2xl bg-[#1d1d1f] dark:bg-[#f5f5f7] text-white dark:text-[#1d1d1f] flex items-center justify-center shadow-sm">
-              {session?.configured ? <Fingerprint className="w-6 h-6" /> : <KeyRound className="w-6 h-6" />}
-            </div>
-            <h1 className="mt-7 text-3xl font-semibold tracking-[-0.035em]">
-              {session?.configured ? (zh ? '使用 Passkey 登录' : 'Sign in with Passkey') : (zh ? '创建管理员 Passkey' : 'Create administrator Passkey')}
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-[#6e6e73] dark:text-[#a1a1a6]">
-              {session?.configured
-                ? (zh ? '通过 Touch ID、Face ID、安全密钥或系统 PIN 验证身份。' : 'Verify with Touch ID, Face ID, a security key, or your system PIN.')
-                : (zh ? '首次设置需要部署环境中的 ADMIN_SETUP_TOKEN。注册完成后，日常登录只使用 Passkey。' : 'First-time setup requires ADMIN_SETUP_TOKEN from the deployment environment. Afterwards, only your Passkey is needed.')}
-            </p>
+            {!resolved ? (
+              error ? (
+                <p role="alert" className="text-sm leading-5 text-[#d70015] dark:text-[#ff6961]">{error}</p>
+              ) : (
+                <div role="status" className="flex items-center gap-2.5 text-sm text-[#6e6e73] dark:text-[#a1a1a6]">
+                  <LoaderCircle className="w-4 h-4 animate-spin" />
+                  {zh ? '正在确认登录状态…' : 'Checking your session…'}
+                </div>
+              )
+            ) : (
+              <div className="animate-fade-in">
+                <div className="w-12 h-12 rounded-2xl bg-[#1d1d1f] dark:bg-[#f5f5f7] text-white dark:text-[#1d1d1f] flex items-center justify-center shadow-sm">
+                  {session.configured ? <Fingerprint className="w-6 h-6" /> : <KeyRound className="w-6 h-6" />}
+                </div>
+                <h1 className="mt-7 text-3xl font-semibold tracking-[-0.035em]">
+                  {session.configured ? (zh ? '使用 Passkey 登录' : 'Sign in with Passkey') : (zh ? '创建管理员 Passkey' : 'Create administrator Passkey')}
+                </h1>
+                <p className="mt-3 text-sm leading-6 text-[#6e6e73] dark:text-[#a1a1a6]">
+                  {session.configured
+                    ? (zh ? '通过 Touch ID、Face ID、安全密钥或系统 PIN 验证身份。' : 'Verify with Touch ID, Face ID, a security key, or your system PIN.')
+                    : (zh ? '首次设置需要部署环境中的 ADMIN_SETUP_TOKEN。注册完成后，日常登录只使用 Passkey。' : 'First-time setup requires ADMIN_SETUP_TOKEN from the deployment environment. Afterwards, only your Passkey is needed.')}
+                </p>
 
-            {!session?.configured && (
-              <label className="block mt-8">
-                <span className="block text-xs font-semibold mb-2">ADMIN_SETUP_TOKEN</span>
-                <input
-                  type="password"
-                  autoComplete="one-time-code"
-                  value={setupToken}
-                  onChange={(event) => setSetupToken(event.target.value)}
-                  className="w-full h-11 px-3.5 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/[0.06] outline-none focus:ring-2 focus:ring-[#0071e3]/30 focus:border-[#0071e3] text-sm"
-                  placeholder={zh ? '粘贴首次设置令牌' : 'Paste first-time setup token'}
-                />
-              </label>
+                {!session.configured && (
+                  <label className="block mt-8">
+                    <span className="block text-xs font-semibold mb-2">ADMIN_SETUP_TOKEN</span>
+                    <input
+                      type="password"
+                      autoComplete="one-time-code"
+                      value={setupToken}
+                      onChange={(event) => setSetupToken(event.target.value)}
+                      className="w-full h-11 px-3.5 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/[0.06] outline-none focus:ring-2 focus:ring-[#0071e3]/30 focus:border-[#0071e3] text-sm"
+                      placeholder={zh ? '粘贴首次设置令牌' : 'Paste first-time setup token'}
+                    />
+                  </label>
+                )}
+
+                {error && <p role="alert" className="mt-4 text-sm leading-5 text-[#d70015] dark:text-[#ff6961]">{error}</p>}
+
+                <button
+                  onClick={runPasskey}
+                  disabled={busy || (!session.configured && !setupToken)}
+                  className="mt-7 w-full h-11 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-45 disabled:cursor-not-allowed text-white text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors"
+                >
+                  {busy ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
+                  {busy ? (zh ? '等待设备验证…' : 'Waiting for device…') : session.configured ? (zh ? '使用 Passkey 继续' : 'Continue with Passkey') : (zh ? '创建 Passkey' : 'Create Passkey')}
+                </button>
+
+                <p className="mt-5 text-[11px] leading-5 text-[#86868b] dark:text-[#77777c]">
+                  {zh ? 'Passkey 仅能在当前域名使用。更换管理域名后，需要在新域名重新注册。' : 'Passkeys are scoped to this domain. Register again after changing the administration domain.'}
+                </p>
+              </div>
             )}
-
-            {error && <p role="alert" className="mt-4 text-sm leading-5 text-[#d70015] dark:text-[#ff6961]">{error}</p>}
-
-            <button
-              onClick={runPasskey}
-              disabled={busy || session === null || (!session.configured && !setupToken)}
-              className="mt-7 w-full h-11 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] disabled:opacity-45 disabled:cursor-not-allowed text-white text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors"
-            >
-              {busy ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
-              {busy ? (zh ? '等待设备验证…' : 'Waiting for device…') : session?.configured ? (zh ? '使用 Passkey 继续' : 'Continue with Passkey') : (zh ? '创建 Passkey' : 'Create Passkey')}
-            </button>
-
-            <p className="mt-5 text-[11px] leading-5 text-[#86868b] dark:text-[#77777c]">
-              {zh ? 'Passkey 仅能在当前域名使用。更换管理域名后，需要在新域名重新注册。' : 'Passkeys are scoped to this domain. Register again after changing the administration domain.'}
-            </p>
           </div>
         </div>
       </section>
