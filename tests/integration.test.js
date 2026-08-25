@@ -1,61 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DatabaseSync } from 'node:sqlite';
-import { createApp, runScheduled } from '../server/core.js';
-import { createSqlTelemetry, initSchema } from '../server/telemetry-sql.js';
+import { runScheduled } from '../server/core.js';
+import { harness, pushService } from './helpers.js';
 
 /**
- * End-to-end exercise of the Cloudflare storage path: the real `createApp`
- * router over the real SQL telemetry layer, backed by an in-process SQLite
- * database. Also counts mutating statements per probe round, which is the
- * number that has to stay inside the Durable Object free-tier allowance of
- * 100,000 rows written/day.
+ * End-to-end exercise of the storage path: the real `createApp` router over the
+ * real SQL telemetry layer. Also counts mutating statements per probe round,
+ * which is the number that has to stay inside the Durable Object free-tier
+ * allowance of 100,000 rows written/day.
  */
-function harness() {
-  const db = new DatabaseSync(':memory:');
-  const counters = { writes: 0 };
-  const sql = {
-    exec(query, ...bindings) {
-      if (!bindings.length && query.trim().includes(';')) {
-        db.exec(query);
-        return { toArray: () => [] };
-      }
-      if (/^\s*(INSERT|UPDATE|DELETE)/i.test(query)) counters.writes += 1;
-      const rows = db.prepare(query).all(...bindings);
-      return { toArray: () => rows };
-    },
-  };
-  initSchema(sql);
-
-  const documents = new Map();
-  const storage = {
-    get: async (key) => documents.get(key) ?? null,
-    put: async (key, value) => void documents.set(key, value),
-    delete: async (key) => void documents.delete(key),
-  };
-  const telemetry = createSqlTelemetry(sql);
-
-  return {
-    counters,
-    storage,
-    telemetry,
-    documents,
-    handle: createApp({ storage, telemetry }),
-    seedServices: (services) => documents.set('config:services', JSON.stringify(services)),
-  };
-}
-
-const pushService = (id, token) => ({
-  id,
-  name: `Service ${id}`,
-  categoryId: 'default',
-  url: `push://${token}`,
-  enabled: true,
-  monitorType: 'push',
-  pushToken: token,
-  heartbeatInterval: 60,
-  createdAt: '2026-01-01T00:00:00.000Z',
-});
 
 test('probe results flow through to the public status feed', async () => {
   const app = harness();

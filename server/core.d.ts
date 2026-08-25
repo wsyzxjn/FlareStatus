@@ -23,7 +23,7 @@ export interface MonitorState {
 
 /**
  * Probe history storage. Split from {@link StorageAdapter} because this is the
- * write-hot path: SQLite tables on Cloudflare, JSON documents on EdgeOne.
+ * write-hot path, and it is backed by SQL tables rather than JSON documents.
  */
 export interface TelemetryAdapter {
   recordBatch(
@@ -42,7 +42,6 @@ export function createApp(options: {
   storage: StorageAdapter;
   telemetry: TelemetryAdapter;
   setupToken?: string;
-  assetsFetch?: (request: Request) => Promise<Response>;
 }): (request: Request) => Promise<Response>;
 
 export function runScheduled(

@@ -1,32 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DatabaseSync } from 'node:sqlite';
-import { createSqlTelemetry, initSchema } from '../server/telemetry-sql.js';
-
-/**
- * Minimal stand-in for the Durable Object `SqlStorage` API, backed by
- * `node:sqlite`. Both expose `exec(query, ...bindings)` returning a cursor with
- * `toArray()`, which is all `telemetry-sql.js` uses.
- */
-function sqlStorage() {
-  const db = new DatabaseSync(':memory:');
-  return {
-    exec(query, ...bindings) {
-      if (!bindings.length && query.trim().includes(';')) {
-        db.exec(query);
-        return { toArray: () => [] };
-      }
-      const rows = db.prepare(query).all(...bindings);
-      return { toArray: () => rows };
-    },
-  };
-}
-
-function telemetry() {
-  const sql = sqlStorage();
-  initSchema(sql);
-  return createSqlTelemetry(sql);
-}
+import { sqlTelemetry as telemetry } from './helpers.js';
 
 const sample = (status, latency, timestamp, statusCode = 200) => ({
   status,

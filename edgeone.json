@@ -1,5 +1,0 @@
-{
-  "name": "flare-status",
-  "buildCommand": "pnpm build",
-  "outputDirectory": "dist"
-}

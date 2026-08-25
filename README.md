@@ -4,7 +4,7 @@
 
 **Apple-style serverless status monitoring with built-in Passkey administration**
 
-An independent status page and uptime monitor for Cloudflare Workers or Tencent EdgeOne Pages. It records real probe history, supports HTTP/keyword and push-heartbeat monitors, exports Prometheus metrics, and protects every management API with WebAuthn Passkeys.
+An independent status page and uptime monitor for Cloudflare Workers. It records real probe history, supports HTTP/keyword and push-heartbeat monitors, exports Prometheus metrics, and protects every management API with WebAuthn Passkeys.
 
 [Live Demo](https://status.amatsuka.net/) • [1-Click Deploy](#-1-click-deploy-to-cloudflare) • [Features](#-key-features) • [Quick Start](#-quick-start) • [Passkey Setup](#-passkey-administrator-setup) • [APIs](#-api-endpoints)
 
@@ -35,7 +35,7 @@ An independent status page and uptime monitor for Cloudflare Workers or Tencent 
 
 ### ⚡ 100% Serverless Edge Architecture
 - **Zero Server Costs & Maintenance**: Runs entirely on Cloudflare Workers, a SQLite-backed Durable Object, and Static Assets.
-- **Scheduled Edge Probing**: Probes configured endpoints every 2 minutes through Cloudflare Worker cron triggers (`*/2 * * * *`). On EdgeOne, probes are driven by an external scheduler calling `POST /api/cron-probe`.
+- **Scheduled Edge Probing**: Probes configured endpoints every 2 minutes through Worker cron triggers (`*/2 * * * *`).
 - **Persisted Telemetry**: Stores real 24-hour samples and 90-day daily aggregates instead of generating synthetic uptime.
 
 ### 🎯 Monitoring
@@ -154,29 +154,6 @@ Add a route in `wrangler.jsonc`:
 ]
 ```
 Then run `npx wrangler deploy`.
-
----
-
-### 🌐 Deploying to Tencent EdgeOne Pages (Makers)
-
-FlareStatus runs natively on **Tencent EdgeOne Pages (Makers)** using Node.js Cloud Functions, Built-in Blob Storage (`@edgeone/pages-blob`), and Scheduled Cron:
-
-1. Log in to the [Tencent EdgeOne Pages Console](https://console.cloud.tencent.com/edgeone/pages) (or [EdgeOne Makers](https://pages.edgeone.ai/)).
-2. **Connect Git & Deploy**:
-   - Click **Add Project** -> **Import from GitHub** -> Select your `FlareStatus` repository.
-   - The platform will automatically detect `edgeone.json`, run the Vite build, mount Cloud Functions (`./cloud-functions/api/`), and initialize EdgeOne Blob Storage (`@edgeone/pages-blob`).
-   - **Probing is not scheduled by the platform.** EdgeOne's free plan rejects any
-     `schedules` entry that fires more often than once a day, and a deployment
-     containing one fails before the functions are published. Drive probes by
-     calling `POST /api/cron-probe` from an external scheduler instead; the route
-     debounces repeat calls made within 60 seconds.
-   - Add a secret environment variable named `ADMIN_SETUP_TOKEN` before first visiting `/admin`.
-3. **Or Deploy via CLI**:
-   ```bash
-   edgeone makers deploy -n flare-status
-   ```
-4. **Bind Custom Domain**:
-   - Add your custom domain in the project settings for automatic EdgeOne Anycast CDN acceleration and free SSL.
 
 ---
 

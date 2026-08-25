@@ -1,35 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createApp, runScheduled, testables } from '../server/core.js';
-import { createBlobTelemetry } from '../server/telemetry-blob.js';
-
-function memoryStorage(seed = {}) {
-  const values = new Map(Object.entries(seed));
-  const stats = { reads: 0, writes: 0, deletes: 0 };
-  return {
-    stats,
-    get: async (key) => {
-      stats.reads += 1;
-      return values.get(key) ?? null;
-    },
-    put: async (key, value) => {
-      stats.writes += 1;
-      values.set(key, value);
-    },
-    delete: async (key) => {
-      stats.deletes += 1;
-      values.delete(key);
-    },
-    raw: values,
-  };
-}
-
-/** Wire an app over a single in-memory store, mirroring the EdgeOne adapter. */
-function memoryApp(seed = {}, options = {}) {
-  const storage = memoryStorage(seed);
-  const telemetry = createBlobTelemetry(storage);
-  return { storage, telemetry, handle: createApp({ storage, telemetry, ...options }) };
-}
+import { runScheduled, testables } from '../server/core.js';
+import { harness } from './helpers.js';
 
 test('normalizes timestamp service ids without throwing', () => {
   assert.equal(testables.normalizeCreatedAt({ id: 'svc-1700000000000' }), '2023-11-14T22:13:20.000Z');
@@ -58,9 +30,15 @@ test('uptime excludes no-data days', () => {
 });
 
 test('admin API fails closed without a Passkey session', async () => {
-  const { handle } = memoryApp({}, { setupToken: 'test-setup-token' });
+  const { handle } = harness({ setupToken: 'test-setup-token' });
   const response = await handle(new Request('https://status.example/api/admin/data'));
   assert.equal(response.status, 401);
+});
+
+test('unknown routes do not fall through to anything else', async () => {
+  const { handle } = harness();
+  const response = await handle(new Request('https://status.example/api/nope'));
+  assert.equal(response.status, 404);
 });
 
 test('public status never exposes push heartbeat tokens', async () => {
@@ -74,7 +52,7 @@ test('public status never exposes push heartbeat tokens', async () => {
     pushToken: 'push_do_not_expose',
     createdAt: '2026-01-01T00:00:00.000Z',
   }];
-  const { handle } = memoryApp({ 'config:services': JSON.stringify(services) });
+  const { handle } = harness({ documents: { 'config:services': JSON.stringify(services) } });
   const response = await handle(new Request('https://status.example/api/status'));
   assert.equal(response.status, 200);
   assert.equal(JSON.stringify(await response.json()).includes('push_do_not_expose'), false);
@@ -91,24 +69,25 @@ test('service ids cannot be used as push credentials', async () => {
     pushToken: 'actual-secret',
     createdAt: '2026-01-01T00:00:00.000Z',
   }];
-  const { handle } = memoryApp({ 'config:services': JSON.stringify(services) });
+  const { handle } = harness({ documents: { 'config:services': JSON.stringify(services) } });
   const response = await handle(new Request('https://status.example/api/push/public-service-id'));
   assert.equal(response.status, 404);
 });
 
 // --- Storage quota regressions -------------------------------------------------
 // A 2-minute cron fires 720 times/day. Any unconditional write in the scheduled
-// path costs 720 writes/day, which alone is 72% of the Workers KV free tier.
+// path costs 720 writes/day, which was enough on its own to exceed the Workers
+// KV free tier of 1,000 writes/day.
 
 test('a probe round with no services performs zero writes', async () => {
-  const storage = memoryStorage({ 'config:services': JSON.stringify([]) });
-  const telemetry = createBlobTelemetry(storage);
+  const app = harness({ documents: { 'config:services': JSON.stringify([]) } });
 
-  const count = await runScheduled(storage, telemetry);
+  const count = await runScheduled(app.storage, app.telemetry);
 
   assert.equal(count, 0);
-  assert.equal(storage.stats.writes, 0, 'idle probe rounds must not write');
-  assert.equal(storage.stats.deletes, 0);
+  assert.equal(app.counters.writes, 0, 'idle rounds must not write telemetry rows');
+  assert.equal(app.stats.writes, 0, 'idle rounds must not write config documents');
+  assert.equal(app.stats.deletes, 0);
 });
 
 test('a probe round with only disabled services performs zero writes', async () => {
@@ -120,11 +99,11 @@ test('a probe round with only disabled services performs zero writes', async () 
     enabled: false,
     createdAt: '2026-01-01T00:00:00.000Z',
   }];
-  const storage = memoryStorage({ 'config:services': JSON.stringify(services) });
-  const telemetry = createBlobTelemetry(storage);
+  const app = harness({ documents: { 'config:services': JSON.stringify(services) } });
 
-  assert.equal(await runScheduled(storage, telemetry), 0);
-  assert.equal(storage.stats.writes, 0);
+  assert.equal(await runScheduled(app.storage, app.telemetry), 0);
+  assert.equal(app.counters.writes, 0);
+  assert.equal(app.stats.writes, 0);
 });
 
 test('push heartbeats do not rewrite the shared service list', async () => {
@@ -139,18 +118,18 @@ test('push heartbeats do not rewrite the shared service list', async () => {
     createdAt: '2026-01-01T00:00:00.000Z',
   }];
   const serialized = JSON.stringify(services);
-  const { handle, storage } = memoryApp({ 'config:services': serialized });
+  const app = harness({ documents: { 'config:services': serialized } });
 
-  const response = await handle(new Request('https://status.example/api/push/secret-token', { method: 'POST' }));
+  const response = await app.handle(new Request('https://status.example/api/push/secret-token', { method: 'POST' }));
   assert.equal(response.status, 200);
   // Read-modify-writing config:services here let concurrent check-ins clobber
-  // each other, so the heartbeat must land on its own key instead.
-  assert.equal(storage.raw.get('config:services'), serialized);
-  assert.deepEqual(Object.keys(JSON.parse(storage.raw.get('monitor:heartbeats'))), ['push-service']);
+  // each other, so the heartbeat must land on its own table instead.
+  assert.equal(app.docs.get('config:services'), serialized);
+  assert.deepEqual(Object.keys(await app.telemetry.getHeartbeats()), ['push-service']);
 });
 
 test('status badges are cacheable so README embeds do not recompute per view', async () => {
-  const { handle } = memoryApp();
+  const { handle } = harness();
   const response = await handle(new Request('https://status.example/api/badge/overall'));
   assert.equal(response.status, 200);
   assert.match(response.headers.get('Cache-Control') ?? '', /max-age=\d+/);

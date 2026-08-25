@@ -570,7 +570,7 @@ async function adminRoute(request, storage, telemetry) {
   return json({ error: 'Not found' }, 404);
 }
 
-export function createApp({ storage, telemetry, setupToken, assetsFetch }) {
+export function createApp({ storage, telemetry, setupToken }) {
   return async function handle(request) {
     const url = new URL(request.url);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { Allow: 'GET, POST, OPTIONS' } });
@@ -635,7 +635,6 @@ export function createApp({ storage, telemetry, setupToken, assetsFetch }) {
         return json({ success: true, count: await runScheduled(storage, telemetry) });
       }
 
-      if (assetsFetch) return assetsFetch(request);
       return json({ error: 'Not found' }, 404);
     } catch (error) {
       console.error('[FlareStatus]', error);

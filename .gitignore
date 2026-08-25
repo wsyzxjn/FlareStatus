@@ -27,6 +27,4 @@ dist-ssr
 .wrangler
 .mf
 
-# EdgeOne CLI local state and build output
-.edgeone/
 .dev.vars
