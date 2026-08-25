@@ -1,14 +1,5 @@
 {
   "name": "flare-status",
   "buildCommand": "pnpm build",
-  "outputDirectory": "dist",
-  "schedules": [
-    {
-      "name": "flarestatus-cron-probe",
-      "cron": "*/2 * * * *",
-      "path": "/api/cron-probe",
-      "method": "POST",
-      "timezone": "Asia/Shanghai"
-    }
-  ]
+  "outputDirectory": "dist"
 }

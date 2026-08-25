@@ -35,7 +35,7 @@ An independent status page and uptime monitor for Cloudflare Workers or Tencent 
 
 ### ⚡ 100% Serverless Edge Architecture
 - **Zero Server Costs & Maintenance**: Runs entirely on Cloudflare Workers, a SQLite-backed Durable Object, and Static Assets.
-- **Scheduled Edge Probing**: Probes configured endpoints every 2 minutes through platform cron triggers (`*/2 * * * *`).
+- **Scheduled Edge Probing**: Probes configured endpoints every 2 minutes through Cloudflare Worker cron triggers (`*/2 * * * *`). On EdgeOne, probes are driven by an external scheduler calling `POST /api/cron-probe`.
 - **Persisted Telemetry**: Stores real 24-hour samples and 90-day daily aggregates instead of generating synthetic uptime.
 
 ### 🎯 Monitoring
@@ -164,7 +164,12 @@ FlareStatus runs natively on **Tencent EdgeOne Pages (Makers)** using Node.js Cl
 1. Log in to the [Tencent EdgeOne Pages Console](https://console.cloud.tencent.com/edgeone/pages) (or [EdgeOne Makers](https://pages.edgeone.ai/)).
 2. **Connect Git & Deploy**:
    - Click **Add Project** -> **Import from GitHub** -> Select your `FlareStatus` repository.
-   - The platform will automatically detect `edgeone.json`, run the Vite build, mount Cloud Functions (`./cloud-functions/api/`), initialize EdgeOne Blob Storage (`@edgeone/pages-blob`), and schedule the 2-minute Cron trigger (`*/2 * * * *`).
+   - The platform will automatically detect `edgeone.json`, run the Vite build, mount Cloud Functions (`./cloud-functions/api/`), and initialize EdgeOne Blob Storage (`@edgeone/pages-blob`).
+   - **Probing is not scheduled by the platform.** EdgeOne's free plan rejects any
+     `schedules` entry that fires more often than once a day, and a deployment
+     containing one fails before the functions are published. Drive probes by
+     calling `POST /api/cron-probe` from an external scheduler instead; the route
+     debounces repeat calls made within 60 seconds.
    - Add a secret environment variable named `ADMIN_SETUP_TOKEN` before first visiting `/admin`.
 3. **Or Deploy via CLI**:
    ```bash
