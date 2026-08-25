@@ -41,6 +41,12 @@ export const HeroStatus: React.FC<HeroStatusProps> = ({
           ringColor: 'bg-[#ff3b30]/20',
           headline: t.headlineOutage,
         };
+      case 'no_data':
+        return {
+          dotBg: 'bg-[#86868b]',
+          ringColor: 'bg-[#86868b]/20',
+          headline: t.headlineNoData,
+        };
       default:
         return {
           dotBg: 'bg-[#86868b]',
@@ -76,12 +82,12 @@ export const HeroStatus: React.FC<HeroStatusProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:flex lg:items-center gap-1.5 sm:gap-2 text-xs w-full lg:w-auto">
         <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#f5f5f7] dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] flex items-center justify-between sm:justify-center gap-2">
           <span className="text-[#86868b] dark:text-[#a1a1a6] whitespace-nowrap">{t.metricUptime}</span>
-          <span className="font-semibold text-[#1d1d1f] dark:text-white font-mono">{overallUptime.toFixed(2)}%</span>
+          <span className="font-semibold text-[#1d1d1f] dark:text-white font-mono">{status === 'no_data' ? '—' : `${overallUptime.toFixed(2)}%`}</span>
         </div>
 
         <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#f5f5f7] dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] flex items-center justify-between sm:justify-center gap-2">
           <span className="text-[#86868b] dark:text-[#a1a1a6] whitespace-nowrap">{t.metricLatency}</span>
-          <span className="font-semibold text-[#1d1d1f] dark:text-white font-mono">{avgLatency}ms</span>
+          <span className="font-semibold text-[#1d1d1f] dark:text-white font-mono">{status === 'no_data' ? '—' : `${avgLatency}ms`}</span>
         </div>
 
         <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#f5f5f7] dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] flex items-center justify-between sm:justify-center gap-2">

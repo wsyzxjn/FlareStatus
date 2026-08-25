@@ -26,3 +26,6 @@ dist-ssr
 # Wrangler & Cloudflare
 .wrangler
 .mf
+
+# EdgeOne local build output
+.edgeone/cloud-functions/

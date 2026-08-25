@@ -7,8 +7,6 @@ import {
   AlertCircle,
   XCircle,
   HelpCircle,
-  ShieldCheck,
-  Lock,
   Copy,
   Check,
   Radio,
@@ -58,6 +56,14 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
           bg: 'bg-rose-50 border-rose-200/80 dark:bg-rose-500/10 dark:border-rose-500/20',
           dot: 'bg-[#ff3b30]',
         };
+      case 'no_data':
+        return {
+          icon: <HelpCircle className="w-3.5 h-3.5 text-[#86868b] dark:text-[#a1a1a6]" />,
+          label: t.statusNoData,
+          color: 'text-neutral-600 dark:text-neutral-300',
+          bg: 'bg-neutral-100 border-neutral-200 dark:bg-white/10 dark:border-white/10',
+          dot: 'bg-neutral-400',
+        };
       default:
         return {
           icon: <HelpCircle className="w-3.5 h-3.5 text-[#86868b] dark:text-[#a1a1a6]" />,
@@ -104,15 +110,6 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
                 <span className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-full bg-[#e5e5ea]/80 dark:bg-white/10 text-[#48484a] dark:text-[#d1d1d6]">
                   {service.region}
                 </span>
-                {service.sslInfo && (
-                  <span
-                    className="inline-flex items-center gap-1 text-[10px] sm:text-[10.5px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 font-mono"
-                    title={`SSL Valid to ${service.sslInfo.validTo || '2027'} (${service.sslInfo.daysRemaining || 184} days left)`}
-                  >
-                    <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600" />
-                    SSL {service.sslInfo.daysRemaining || 184}d
-                  </span>
-                )}
               </div>
               {service.description && (
                 <p className="text-xs text-[#6e6e73] dark:text-[#a1a1a6] mt-0.5 truncate">
@@ -136,7 +133,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
               {/* Uptime % */}
               <span className="text-[11px] sm:text-xs font-semibold text-[#6e6e73] dark:text-[#a1a1a6] font-mono">
-                {service.uptime90d ?? (service as any).uptime30d ?? (service as any).uptime ?? 100}%
+                {service.status === 'no_data' ? '—' : `${service.uptime90d ?? (service as any).uptime30d ?? (service as any).uptime ?? 0}%`}
               </span>
             </div>
 
@@ -166,8 +163,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
             daysCount={timelineDays}
             t={t}
             serviceCreatedAt={service.createdAt || service.id}
-            serviceStatus={service.status}
-            currentLatency={service.currentLatency}
+            recentLatencies={service.recentLatencies}
           />
         </div>
       </div>
@@ -183,24 +179,11 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
           />
 
           {/* Detailed Info Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
             <div className="p-3 rounded-xl bg-white dark:bg-white/[0.03] border border-[#e5e5ea]/80 dark:border-white/[0.05]">
               <span className="text-[#86868b] dark:text-[#a1a1a6]">{t.endpointTarget}</span>
               <div className="font-mono text-[#1d1d1f] dark:text-[#f5f5f7] mt-1 truncate">
-                {service.endpointUrl || 'https://edge.api/health'}
-              </div>
-            </div>
-
-            {/* SSL / TLS Status Card */}
-            <div className="p-3 rounded-xl bg-white dark:bg-white/[0.03] border border-[#e5e5ea]/80 dark:border-white/[0.05]">
-              <span className="text-[#86868b] dark:text-[#a1a1a6]">SSL / TLS 证书状态</span>
-              <div className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7] mt-1 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="truncate">
-                  {service.sslInfo
-                    ? `TLS 1.3 · 剩余 ${service.sslInfo.daysRemaining || 184} 天`
-                    : 'HTTPS 强加密'}
-                </span>
+                {service.endpointUrl || t.notMonitored}
               </div>
             </div>
 

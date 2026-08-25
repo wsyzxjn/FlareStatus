@@ -2,11 +2,11 @@
 
 # ⚡ FlareStatus
 
-**Apple-style Minimalist & Glassmorphism Status Monitor powered by Cloudflare Serverless**
+**Apple-style serverless status monitoring with built-in Passkey administration**
 
-An elegant, zero-maintenance, serverless status page and uptime monitoring engine built with Cloudflare Workers, KV, React 19, and Tailwind CSS v4. Features deep **Uptime Kuma** parity including multi-protocol probing, SSL cert countdowns, push heartbeats, per-service alert routing, Prometheus metrics, and Cloudflare Zero Trust admin protection.
+An independent status page and uptime monitor for Cloudflare Workers or Tencent EdgeOne Pages. It records real probe history, supports HTTP/keyword and push-heartbeat monitors, exports Prometheus metrics, and protects every management API with WebAuthn Passkeys.
 
-[Live Demo](https://status.amatsuka.net/) • [1-Click Deploy](#-1-click-deploy-to-cloudflare) • [Features](#-key-features) • [Quick Start](#-quick-start) • [Zero Trust Guide](#-cloudflare-zero-trust-access-guide) • [APIs](#-api-endpoints)
+[Live Demo](https://status.amatsuka.net/) • [1-Click Deploy](#-1-click-deploy-to-cloudflare) • [Features](#-key-features) • [Quick Start](#-quick-start) • [Passkey Setup](#-passkey-administrator-setup) • [APIs](#-api-endpoints)
 
 <br/>
 
@@ -35,26 +35,21 @@ An elegant, zero-maintenance, serverless status page and uptime monitoring engin
 
 ### ⚡ 100% Serverless Edge Architecture
 - **Zero Server Costs & Maintenance**: Runs entirely on Cloudflare Workers, Workers KV, and Static Assets.
-- **Global Anycast Probing**: Probes your endpoints across 310+ global edge data centers every 2 minutes via Cron Triggers (`*/2 * * * *`).
-- **Real-Time Dynamic Telemetry**: Real-time SLA % calculation, live response latency, active endpoints count, and dynamic probe counters.
+- **Scheduled Edge Probing**: Probes configured endpoints every 2 minutes through platform cron triggers (`*/2 * * * *`).
+- **Persisted Telemetry**: Stores real 24-hour samples and 90-day daily aggregates instead of generating synthetic uptime.
 
-### 🎯 Uptime Kuma Feature Parity
-- **Multi-Protocol Monitors**:
+### 🎯 Monitoring
+- **Monitor Types**:
   - **HTTP(s) Status Codes**: Configurable accepted status codes (e.g. `200-299, 301, 302`).
   - **Keyword Matching**: Ensures response body contains critical keywords.
-  - **TCP Port Connectivity & DNS Queries**: Validates DoH responses and network endpoints.
   - **Passive Push Heartbeats (Cron Monitors)**: Heartbeat monitor (`/api/push/:token`) for batch jobs, backup scripts, and internal daemons.
   - **Inverted / Upside-Down Mode**: Triggers alerts if an endpoint becomes unexpectedly accessible.
-- **SSL / TLS Certificate Monitoring**:
-  - Real-time certificate validity tracking and expiration countdown badge (e.g. `SSL: 82d left`).
-- **Per-Service Alert Routing & Notification Channels**:
-  - Route alerts from critical services to SRE on-call channels, while low-priority services ping chat groups.
-  - Channels supported: **Email (Resend, SendGrid, SMTP)**, **Generic JSON Webhooks**, **Feishu / Lark**, **DingTalk**, **WeCom**, and **Telegram**.
-  - Rich variable templates: `{{SERVICE_NAME}}`, `{{STATUS}}`, `{{STATUS_EMOJI}}`, `{{TIME}}`, `{{LATENCY}}`, `{{HTTP_CODE}}`, `{{TARGET_URL}}`, `{{ERROR_MSG}}`.
+- Notification channel configuration is stored by the admin UI, but outbound notification delivery is not implemented yet.
 
-### 🛡️ Cloudflare Zero Trust (Access) Admin Portal
+### 🛡️ Passkey Admin Portal
 - **macOS System Settings Style Admin Panel**: Manage services, custom categories, incident broadcasts, and alert channels.
-- **Edge Security**: Native real-path routing (`/admin`) designed to be intercepted and protected by Cloudflare Access (Email OTP, GitHub OAuth, Google, SAML) without hardcoded passwords in code.
+- **Independent Authentication**: WebAuthn registration and login using Touch ID, Face ID, Windows Hello, Android screen lock, or a FIDO2 security key.
+- **Protected APIs**: Every `/api/admin/*` route requires a server-side session backed by an HttpOnly, Secure, SameSite cookie.
 - **Data Management & Danger Zone**: One-click master reset or modular clearing of services, incidents, or notification channels.
 
 ### 📊 Integrations & Developer Tools
@@ -68,14 +63,14 @@ An elegant, zero-maintenance, serverless status page and uptime monitoring engin
 
 - **Frontend**: React 19, TypeScript, Vite 8, Tailwind CSS v4 (`@tailwindcss/vite`), Lucide React.
 - **Backend / Edge**: Cloudflare Workers, Workers KV, Worker Cron Triggers, Single-Page Application (SPA) Static Assets.
-- **Security**: Cloudflare Zero Trust (Access).
+- **Security**: WebAuthn Passkeys with a one-time deployment setup token.
 
 ---
 
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
-- Node.js `>= 18` and `pnpm`
+- Node.js `>= 22.13` and `pnpm`
 - A Cloudflare account and the [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (`npm i -g wrangler`)
 
 ### 2. Clone & Install
@@ -105,6 +100,7 @@ Deploy your own instance of FlareStatus with one click:
 1. Click the **Deploy to Cloudflare Workers** button above.
 2. Authorize Cloudflare with your GitHub account to automatically fork and link the repository.
 3. Cloudflare will automatically provision your Worker, build the frontend assets, and deploy to your edge subdomain (`*.workers.dev`).
+4. Configure `ADMIN_SETUP_TOKEN` as a secret before opening the admin console for the first time.
 
 ---
 
@@ -140,13 +136,20 @@ Copy the returned `id` into `wrangler.jsonc`:
 }
 ```
 
-#### 2. Build & Deploy
+#### 2. Configure the first-time setup token
 ```bash
-pnpm build
-npx wrangler deploy
+pnpm wrangler secret put ADMIN_SETUP_TOKEN
 ```
 
-#### 3. Bind Your Custom Domain
+Use a long random value. It is accepted only while no Passkey exists for the current domain.
+
+#### 3. Build & Deploy
+```bash
+pnpm build
+pnpm wrangler deploy
+```
+
+#### 4. Bind Your Custom Domain
 To bind a custom domain like `status.yourdomain.com`:
 Add a route in `wrangler.jsonc`:
 ```jsonc
@@ -169,6 +172,7 @@ FlareStatus runs natively on **Tencent EdgeOne Pages (Makers)** using Node.js Cl
 2. **Connect Git & Deploy**:
    - Click **Add Project** -> **Import from GitHub** -> Select your `FlareStatus` repository.
    - The platform will automatically detect `edgeone.json`, run the Vite build, mount Cloud Functions (`./cloud-functions/api/`), initialize EdgeOne Blob Storage (`@edgeone/pages-blob`), and schedule the 2-minute Cron trigger (`*/2 * * * *`).
+   - Add a secret environment variable named `ADMIN_SETUP_TOKEN` before first visiting `/admin`.
 3. **Or Deploy via CLI**:
    ```bash
    edgeone makers deploy -n flare-status
@@ -178,21 +182,14 @@ FlareStatus runs natively on **Tencent EdgeOne Pages (Makers)** using Node.js Cl
 
 ---
 
-## 🔒 Cloudflare Zero Trust (Access) Guide
+## 🔒 Passkey Administrator Setup
 
-Protect your `/admin*` routes with Cloudflare Access in under 2 minutes:
+1. Deploy with a secret `ADMIN_SETUP_TOKEN` environment variable.
+2. Open `/admin` on the final HTTPS domain and enter that token.
+3. Register a Passkey using the browser's native prompt.
+4. Remove or rotate `ADMIN_SETUP_TOKEN` after registration. Existing Passkeys continue to work.
 
-1. In your **Cloudflare Dashboard**, navigate to **Zero Trust** -> **Access** -> **Applications**.
-2. Click **Add an Application** -> Select **Self-hosted**.
-3. Configure the Application:
-   - **Application Name**: `FlareStatus Admin`
-   - **Application Domain**: `status.yourdomain.com`
-   - **Path**: `admin*`
-4. Add an **Access Policy**:
-   - **Policy Name**: `Admin Only`
-   - **Action**: `Allow`
-   - **Rule**: Include your email address, domain, or GitHub organization.
-5. Save the policy. All requests to `/admin*` will now be safely authenticated at Cloudflare's Edge before reaching your app!
+Passkeys are scoped to the hostname used during registration. If the administration hostname changes, configure a setup token and register a new Passkey on the new hostname before removing the old deployment.
 
 ---
 
@@ -204,6 +201,9 @@ Protect your `/admin*` routes with Cloudflare Access in under 2 minutes:
 | `/api/push/:token` | `GET/POST` | Passive push heartbeat check-in for cron jobs |
 | `/api/badge/:serviceId` | `GET` | SVG status badge for GitHub READMEs (`overall` or service ID) |
 | `/metrics` | `GET` | Prometheus metrics exposition format |
+| `/api/auth/session` | `GET` | Current Passkey session and setup status |
+| `/api/auth/register/*` | `POST` | First-time Passkey registration flow |
+| `/api/auth/login/*` | `POST` | Passkey authentication flow |
 | `/api/admin/data` | `GET` | Full admin configuration and active probes |
 | `/api/admin/services` | `POST` | Update and save monitored services |
 | `/api/admin/categories` | `POST` | Update custom categories |

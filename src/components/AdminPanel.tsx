@@ -13,7 +13,6 @@ import {
   ArrowLeft,
   ShieldCheck,
   Save,
-  Send,
   Globe,
   Sun,
   Moon,
@@ -25,11 +24,7 @@ import {
   Webhook,
   MessageSquare,
   Sparkles,
-  Clock,
-  Wrench,
-  CheckCircle2,
   AlertCircle,
-  XCircle,
 } from 'lucide-react';
 import {
   ServiceItem,
@@ -41,7 +36,7 @@ import {
   HttpMethod,
   Incident,
   IncidentUpdate,
-} from '../../worker/types';
+} from '../types';
 import { apiFetch } from '../api';
 import { DEFAULT_CATEGORIES, INITIAL_STATUS_DATA } from '../mockData';
 import { Translations, Language } from '../i18n';
@@ -54,11 +49,17 @@ interface AdminPanelProps {
   darkMode: boolean;
   setDarkMode: (val: boolean | ((prev: boolean) => boolean)) => void;
   onUpdateIncidents?: (active: Incident[], past: Incident[]) => void;
+  onLogout?: () => Promise<void>;
 }
 
 const INITIAL_ADMIN_SERVICES: ServiceItem[] = [];
 
 const INITIAL_NOTIFICATIONS: NotificationChannel[] = [];
+
+function createPushToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return `push_${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
 
 const TEMPLATE_VARIABLES = [
   { tag: '{{SERVICE_NAME}}', desc: '服务名称' },
@@ -78,6 +79,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   darkMode,
   setDarkMode,
   onUpdateIncidents,
+  onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<'endpoints' | 'categories' | 'incidents' | 'notifications' | 'settings'>('endpoints');
   const [categories, setCategories] = useState<CategoryConfig[]>(DEFAULT_CATEGORIES);
@@ -90,7 +92,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [adminEmail, setAdminEmail] = useState<string>('admin@edge.internal');
   const [settings, setSettings] = useState<GlobalSiteSettings>({
     siteTitle: 'FlareStatus',
-    siteSubtitle: 'Real-time telemetry and edge health across all 310+ global locations',
+    siteSubtitle: 'Scheduled edge telemetry and service health',
     targetSla: 99.9,
     probeInterval: 2,
     historyRetentionDays: 90,
@@ -178,7 +180,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     customBodyTemplate: 'Service: {{SERVICE_NAME}}\nStatus: {{STATUS}}\nTime: {{TIME}}\nLatency: {{LATENCY}}\nTarget: {{TARGET_URL}}',
   });
 
-  const [notifyTestStatus, setNotifyTestStatus] = useState<Record<string, string>>({});
   const [savedToast, setSavedToast] = useState(false);
 
   // Form State for Endpoint
@@ -199,7 +200,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     basicPass: '',
     bearerToken: '',
     keywordMatch: '',
-    ignoreTls: false,
     upsideDown: false,
     notificationChannelIds: [],
     region: 'Global Anycast',
@@ -344,7 +344,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       body: '',
       authMethod: 'none',
       keywordMatch: '',
-      ignoreTls: false,
       upsideDown: false,
       notificationChannelIds: notifications.filter((n) => n.defaultEnabled).map((n) => n.id),
       region: 'Global Anycast',
@@ -391,7 +390,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         basicPass: serviceFormData.basicPass,
         bearerToken: serviceFormData.bearerToken,
         keywordMatch: serviceFormData.keywordMatch,
-        ignoreTls: serviceFormData.ignoreTls,
         upsideDown: serviceFormData.upsideDown,
         notificationChannelIds: serviceFormData.notificationChannelIds || [],
         region: serviceFormData.region || 'Global Anycast',
@@ -815,34 +813,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         });
       } else {
         setTestProbeResult({
-          status: 'operational',
-          latency: Math.max(15, Date.now() - startTime),
-          statusCode: 200,
+          status: 'outage',
+          latency: Date.now() - startTime,
+          statusCode: 0,
         });
       }
     } catch (_e) {
       setTestProbeResult({
-        status: 'operational',
-        latency: Math.floor(18 + Math.random() * 16),
-        statusCode: 200,
+        status: 'outage',
+        latency: Date.now() - startTime,
+        statusCode: 0,
       });
     } finally {
       setIsTestingProbe(false);
     }
-  };
-
-  const handleSendTestNotify = (channelId: string) => {
-    setNotifyTestStatus((prev) => ({ ...prev, [channelId]: 'sending' }));
-    setTimeout(() => {
-      setNotifyTestStatus((prev) => ({ ...prev, [channelId]: 'success' }));
-      setTimeout(() => {
-        setNotifyTestStatus((prev) => {
-          const next = { ...prev };
-          delete next[channelId];
-          return next;
-        });
-      }, 2500);
-    }, 600);
   };
 
   const activeIncidentsList = incidents.filter((i) => i.status !== 'resolved');
@@ -870,13 +854,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[10.5px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-500/20 flex-shrink-0">
                 <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                <span className="hidden sm:inline">Zero Trust Active</span>
+                <span className="hidden sm:inline">Passkey Protected</span>
                 <span className="sm:hidden">Active</span>
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            {onLogout && (
+              <button
+                onClick={() => void onLogout()}
+                className="px-2.5 py-1 text-[11px] sm:text-xs font-semibold rounded-full text-[#d70015] dark:text-[#ff6961] hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+              >
+                {lang === 'zh' ? '退出' : 'Sign out'}
+              </button>
+            )}
             <button
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
               className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-[#e5e5ea]/80 hover:bg-[#d1d1d6] dark:bg-white/10 dark:hover:bg-white/15 text-[#1d1d1f] dark:text-[#f5f5f7] transition-all active:scale-95 cursor-pointer"
@@ -991,8 +983,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </button>
 
             <div className="hidden md:block pt-2.5 mt-2 border-t border-black/[0.04] dark:border-white/[0.06] px-3 pb-1 text-[11px] text-[#86868b] space-y-0.5">
-              <div className="font-semibold text-[#1d1d1f] dark:text-white">Cloudflare Access</div>
+              <div className="font-semibold text-[#1d1d1f] dark:text-white">Passkey Session</div>
               <div className="font-mono text-[10.5px] text-[#6e6e73] dark:text-[#a1a1a6] truncate">{adminEmail}</div>
+              {onLogout && (
+                <button onClick={() => void onLogout()} className="pt-1 text-[10.5px] font-semibold text-[#d70015] dark:text-[#ff6961] hover:underline">
+                  {lang === 'zh' ? '退出登录' : 'Sign out'}
+                </button>
+              )}
             </div>
           </aside>
 
@@ -1010,8 +1007,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </h2>
                     <p className="text-xs text-[#6e6e73] dark:text-[#a1a1a6] mt-0.5">
                       {lang === 'zh'
-                        ? '支持 HTTP(s)、关键词检测、JSON 查询、TCP 端口及专属告警分流'
-                        : 'Support HTTP(s), Keyword match, JSON query, Port, DNS & per-service alert routing'}
+                        ? '支持 HTTP(s) 状态码、关键词检测与被动心跳监控'
+                        : 'HTTP(s) status, keyword matching, and passive heartbeat monitors'}
                     </p>
                   </div>
 
@@ -1418,8 +1415,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </h2>
                     <p className="text-xs text-[#6e6e73] dark:text-[#a1a1a6] mt-0.5">
                       {lang === 'zh'
-                        ? '支持邮件、Webhook、飞书、钉钉、企微等，支持自定义触发条件与模板'
-                        : 'Custom trigger conditions (Down/Up/Degraded) and rich variable templates'}
+                        ? '当前仅保存通道与模板配置；自动投递将在后续版本接入'
+                        : 'Channel and template configuration only; outbound delivery is not implemented yet'}
                     </p>
                   </div>
 
@@ -1545,19 +1542,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 : `${notif.webhookUrl || 'No Webhook URL'}`}
                             </div>
 
-                            <button
-                              onClick={() => handleSendTestNotify(notif.id)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/[0.04] hover:bg-black/[0.08] dark:bg-white/10 dark:hover:bg-white/15 text-xs font-semibold transition-colors cursor-pointer flex-shrink-0"
-                            >
-                              <Send className="w-3 h-3 text-blue-500" />
-                              <span>
-                                {notifyTestStatus[notif.id] === 'sending'
-                                  ? '...'
-                                  : notifyTestStatus[notif.id] === 'success'
-                                  ? (lang === 'zh' ? '✓ 发送成功' : '✓ Sent')
-                                  : (lang === 'zh' ? '测试推送' : 'Test')}
-                              </span>
-                            </button>
+                            <span className="px-3 py-1.5 rounded-xl bg-black/[0.04] dark:bg-white/10 text-[11px] font-medium text-[#86868b] flex-shrink-0">
+                              {lang === 'zh' ? '投递待接入' : 'Delivery pending'}
+                            </span>
                           </div>
                         </div>
                       );
@@ -2109,7 +2096,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         value={serviceFormData.monitorType || 'http'}
                         onChange={(e) => {
                           const val = e.target.value as MonitorType;
-                          const token = val === 'push' ? (serviceFormData.pushToken || 'push_' + Math.random().toString(36).substring(2, 10)) : serviceFormData.pushToken;
+                          const token = val === 'push' ? (serviceFormData.pushToken || createPushToken()) : serviceFormData.pushToken;
                           setServiceFormData({
                             ...serviceFormData,
                             monitorType: val,
@@ -2121,8 +2108,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       >
                         <option value="http">HTTP(s) 状态码监控</option>
                         <option value="keyword">HTTP(s) 关键字匹配</option>
-                        <option value="port">TCP 端口连通性</option>
-                        <option value="dns">DNS 记录查询</option>
                         <option value="push">📡 被动心跳上报 (Push / Cron)</option>
                       </select>
                     </div>
@@ -2303,32 +2288,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </div>
                   </div>
 
-                  {/* SSL Cert & Upside Down Switch */}
+                  {/* Inverted status switch */}
                   <div className="space-y-2">
-                    <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.05] dark:border-white/10 flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold text-xs text-[#1d1d1f] dark:text-white">
-                          🔒 {lang === 'zh' ? 'SSL/TLS 证书到期监测与预警' : 'SSL/TLS Certificate Expiry Monitor'}
-                        </div>
-                        <div className="text-[11px] text-[#6e6e73] dark:text-[#a1a1a6]">
-                          {lang === 'zh' ? '自动检测证书有效期并在剩余少于 30 天时告警' : 'Alert when certificate expires in < 30 days'}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setServiceFormData({ ...serviceFormData, checkSslCert: !serviceFormData.checkSslCert })}
-                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                          serviceFormData.checkSslCert ? 'bg-[#34c759]' : 'bg-[#d1d1d6] dark:bg-white/20'
-                        }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
-                            serviceFormData.checkSslCert ? 'translate-x-4' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
                     <div className="p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.05] dark:border-white/10 flex items-center justify-between">
                       <div>
                         <div className="font-semibold text-xs text-[#1d1d1f] dark:text-white">

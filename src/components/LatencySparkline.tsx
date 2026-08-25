@@ -29,7 +29,7 @@ export const LatencySparkline: React.FC<LatencySparklineProps> = ({
 
   // Build SVG path
   const points = data.map((d, index) => {
-    const x = padding + (index / (data.length - 1)) * (width - 2 * padding);
+    const x = data.length === 1 ? width / 2 : padding + (index / (data.length - 1)) * (width - 2 * padding);
     const y = height - padding - ((d.latency - min) / range) * (height - 2 * padding);
     return { x, y, point: d };
   });

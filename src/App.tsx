@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroStatus } from './components/HeroStatus';
 import { ServiceCard } from './components/ServiceCard';
 import { IncidentSection } from './components/IncidentSection';
 import { Footer } from './components/Footer';
 import { AdminPanel } from './components/AdminPanel';
+import { AdminAuth } from './components/AdminAuth';
 import { INITIAL_STATUS_DATA } from './mockData';
-import { SystemStatusData, ServiceCategory, ServiceItem } from './types';
+import { SystemStatusData, ServiceCategory } from './types';
 import { DICTIONARY, Language } from './i18n';
 import { apiFetch } from './api';
 import {
@@ -46,7 +47,7 @@ export function App() {
     try {
       const saved = localStorage.getItem('apple_status_lang');
       if (saved === 'en' || saved === 'zh') return saved as Language;
-      return navigator.language && navigator.language.startsWith('zh') ? 'zh' : 'zh';
+      return navigator.language && navigator.language.startsWith('zh') ? 'zh' : 'en';
     } catch (_e) {
       return 'zh';
     }
@@ -104,18 +105,11 @@ export function App() {
       if (res.ok) {
         const json = await res.json();
         if (json.categories) {
-          setStatusData((prev) => ({
-            ...prev,
-            ...json,
-            lastUpdated: new Date().toISOString(),
-          }));
+          setStatusData((prev) => ({ ...prev, ...json }));
         }
       }
     } catch (_err) {
-      setStatusData((prev) => ({
-        ...prev,
-        lastUpdated: new Date().toISOString(),
-      }));
+      // Keep the last confirmed snapshot and timestamp when refresh fails.
     } finally {
       setTimeout(() => setIsRefreshing(false), 400);
     }
@@ -173,7 +167,11 @@ export function App() {
   // If on Admin View, render the macOS System Settings style Admin Panel
   if (currentView === 'admin') {
     return (
-      <AdminPanel
+      <AdminAuth lang={lang} onBack={() => {
+        setCurrentView('public');
+        window.history.pushState({}, '', '/');
+      }}>
+        {(logout) => <AdminPanel
         onBackToPublic={() => {
           setCurrentView('public');
           if (typeof window !== 'undefined') {
@@ -186,15 +184,25 @@ export function App() {
         setLang={setLang}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
+        onLogout={logout}
         onUpdateIncidents={(active, past) => {
           setStatusData((prev) => ({
             ...prev,
             activeIncidents: active,
             pastIncidents: past,
-            systemStatus: active.length > 0 ? (active.some((i) => i.severity === 'critical') ? 'outage' : 'degraded') : 'operational',
+            systemStatus: active.length > 0
+              ? (active.some((i) => i.severity === 'critical') ? 'outage' : 'degraded')
+              : prev.categories.some((category) => category.services.some((service) => service.status === 'outage'))
+              ? 'outage'
+              : prev.categories.some((category) => category.services.some((service) => service.status === 'degraded'))
+              ? 'degraded'
+              : prev.categories.length === 0
+              ? 'no_data'
+              : 'operational',
           }));
         }}
-      />
+        />}
+      </AdminAuth>
     );
   }
 
@@ -235,28 +243,18 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-6 pb-14 space-y-6">
-        {/* Compact Apple Status Bar (100% Real-time Dynamically Computed) */}
+        {/* Compact status summary derived from persisted probe data */}
         {(() => {
           const allServicesList = statusData.categories.flatMap((c) => c.services);
           const totalEndpointsCount = allServicesList.length;
-          const dynamicAvgLatency = totalEndpointsCount > 0
-            ? Math.round(allServicesList.reduce((acc, s) => acc + s.currentLatency, 0) / totalEndpointsCount)
-            : 0;
-          const dynamicOverallUptime = totalEndpointsCount > 0
-            ? Number((allServicesList.reduce((acc, s) => acc + (s.uptime90d ?? (s as any).uptime30d ?? (s as any).uptime ?? 100), 0) / totalEndpointsCount).toFixed(2))
-            : 100;
-          const now = new Date();
-          const minutesPassedToday = now.getHours() * 60 + now.getMinutes();
-          const dynamicTotalProbesToday = totalEndpointsCount * Math.max(1, Math.floor(minutesPassedToday / 2));
-
           return (
             <HeroStatus
               status={statusData.systemStatus}
               t={t}
-              overallUptime={dynamicOverallUptime}
-              avgLatency={dynamicAvgLatency}
+              overallUptime={statusData.overallUptime90d}
+              avgLatency={statusData.avgLatencyMs}
               totalEndpoints={totalEndpointsCount}
-              totalProbes={dynamicTotalProbesToday}
+              totalProbes={statusData.totalProbesToday}
             />
           );
         })()}

@@ -44,6 +44,16 @@ function localApiMockPlugin(): Plugin {
           return;
         }
 
+        if (url.pathname === '/api/auth/session' && req.method === 'GET') {
+          res.end(JSON.stringify({ authenticated: true, configured: true }));
+          return;
+        }
+
+        if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
+          res.end(JSON.stringify({ success: true }));
+          return;
+        }
+
         if (url.pathname === '/api/status' && req.method === 'GET') {
           const totalServices = localServices.length;
           const liveServices = localServices.map((s) => ({

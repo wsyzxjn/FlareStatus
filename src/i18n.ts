@@ -16,11 +16,13 @@ export interface Translations {
   headlineDegraded: string;
   headlineOutage: string;
   headlineMaintenance: string;
+  headlineNoData: string;
   subtitle: string;
   statusOperational: string;
   statusDegraded: string;
   statusOutage: string;
   statusMaintenance: string;
+  statusNoData: string;
 
   // Metrics
   metricUptime: string;
@@ -58,6 +60,11 @@ export interface Translations {
   now: string;
   fullOperational: string;
   uptimeRate: string;
+  notMonitored: string;
+  noProbeData: string;
+  notCreatedYet: string;
+  noMonitoringData: string;
+  sinceCreated: string;
   dailyUptime: string;
   avgLatency: string;
   instantPingTitle: string;
@@ -102,18 +109,20 @@ export const DICTIONARY: Record<Language, Translations> = {
     headlineDegraded: '部分系统性能降级',
     headlineOutage: '核心系统发生故障',
     headlineMaintenance: '系统正在计划内维护',
-    subtitle: '全球 310+ 边缘节点实时遥测与服务健康度',
+    headlineNoData: '等待首次探测数据',
+    subtitle: '定时边缘探测与服务健康度',
     statusOperational: '全部正常',
     statusDegraded: '性能降级',
     statusOutage: '重大故障',
     statusMaintenance: '计划维护',
+    statusNoData: '暂无数据',
 
-    metricUptime: '30 天可用率',
+    metricUptime: '90 天可用率',
     metricUptimeSLA: 'SLA 目标: 99.9%',
     metricLatency: '实时平均延迟',
     metricLatencySub: '所有活跃端点实时均值',
     metricPoPs: '监控服务端点',
-    metricPoPsSub: '310+ 边缘节点探测',
+    metricPoPsSub: '定时边缘探测',
     metricProbes: '今日累计探测',
     metricProbesSub: '每 2 分钟并发探测一次',
 
@@ -141,6 +150,11 @@ export const DICTIONARY: Record<Language, Translations> = {
     now: '刚刚',
     fullOperational: '100% 正常运行',
     uptimeRate: '可用率',
+    notMonitored: '未监控',
+    noProbeData: '该时段没有探测数据',
+    notCreatedYet: '该时段服务尚未创建',
+    noMonitoringData: '暂无监控数据',
+    sinceCreated: '创建至今',
     dailyUptime: '当日可用率',
     avgLatency: '平均延迟',
     instantPingTitle: '从最近边缘节点即时测速',
@@ -181,18 +195,20 @@ export const DICTIONARY: Record<Language, Translations> = {
     headlineDegraded: 'Degraded System Performance',
     headlineOutage: 'Major System Outage',
     headlineMaintenance: 'Under Scheduled Maintenance',
-    subtitle: 'Real-time telemetry and edge health across all 310+ global locations',
+    headlineNoData: 'Awaiting First Probe',
+    subtitle: 'Scheduled edge telemetry and service health',
     statusOperational: 'All Operational',
     statusDegraded: 'Degraded',
     statusOutage: 'Major Outage',
     statusMaintenance: 'Maintenance',
+    statusNoData: 'No Data',
 
-    metricUptime: '30-Day Uptime',
+    metricUptime: '90-Day Uptime',
     metricUptimeSLA: 'Target SLA: 99.9%',
     metricLatency: 'Real-time Latency',
     metricLatencySub: 'Average across endpoints',
     metricPoPs: 'Monitored Targets',
-    metricPoPsSub: 'Via 310+ Anycast PoPs',
+    metricPoPsSub: 'Scheduled edge probes',
     metricProbes: 'Probes Today',
     metricProbesSub: 'Every 2 mins per target',
 
@@ -220,6 +236,11 @@ export const DICTIONARY: Record<Language, Translations> = {
     now: 'Now',
     fullOperational: '100% Operational',
     uptimeRate: 'Uptime',
+    notMonitored: 'Not monitored',
+    noProbeData: 'No probe data for this period',
+    notCreatedYet: 'Service did not exist during this period',
+    noMonitoringData: 'No monitoring data',
+    sinceCreated: 'Since creation',
     dailyUptime: 'Daily Uptime',
     avgLatency: 'Avg Latency',
     instantPingTitle: 'Click to ping from closest edge node',

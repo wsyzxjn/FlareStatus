@@ -3,6 +3,8 @@ export type ServiceStatus = 'operational' | 'degraded' | 'outage' | 'maintenance
 export interface LatencyPoint {
   time: string;
   latency: number;
+  timestamp?: string;
+  status?: ServiceStatus;
 }
 
 export interface DayHistory {
@@ -22,16 +24,8 @@ export interface CategoryConfig {
   icon?: 'server' | 'globe' | 'database' | 'cpu' | 'cloud' | 'shield';
 }
 
-export type MonitorType = 'http' | 'keyword' | 'json_query' | 'port' | 'dns' | 'push';
+export type MonitorType = 'http' | 'keyword' | 'push';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
-
-export interface SslCertInfo {
-  valid: boolean;
-  daysRemaining?: number;
-  validTo?: string;
-  issuer?: string;
-  expiresSoon?: boolean;
-}
 
 export interface ServiceItem {
   id: string;
@@ -40,25 +34,19 @@ export interface ServiceItem {
   url: string;
   enabled: boolean;
   
-  // Uptime Kuma Monitor Types & Protocols
+  // Monitor protocol
   monitorType?: MonitorType;
   method?: HttpMethod;
   expectedStatus?: number;
   acceptedStatusCodes?: string;
-  
-  // SSL Certificate Expiry Alert
-  checkSslCert?: boolean;
-  sslExpiryDaysWarning?: number;
   
   // Passive Heartbeat / Push Monitor (Dead Man's Switch)
   pushToken?: string;
   heartbeatInterval?: number;
   lastHeartbeatPing?: string;
   
-  // Keyword & JSON Query Matchers
+  // Keyword matcher
   keywordMatch?: string;
-  jsonPath?: string;
-  expectedJsonValue?: string;
   
   // Advanced HTTP Request Options
   headers?: string;
@@ -67,7 +55,6 @@ export interface ServiceItem {
   basicUser?: string;
   basicPass?: string;
   bearerToken?: string;
-  ignoreTls?: boolean;
   upsideDown?: boolean;
   
   // Retries & Timing
@@ -92,13 +79,10 @@ export interface ServiceLiveState {
   monitorType?: MonitorType;
   currentLatency: number;
   uptime90d: number;
-  lastChecked: string;
+  lastChecked: string | null;
   region: string;
   endpointUrl?: string;
   description?: string;
-  sslInfo?: SslCertInfo;
-  lastHeartbeatPing?: string;
-  pushToken?: string;
   createdAt?: string;
   recentLatencies: LatencyPoint[];
   history90d: DayHistory[];
@@ -163,6 +147,15 @@ export interface NotificationChannel {
   apiKey?: string;
   smtpHost?: string;
   smtpPort?: number;
+}
+
+export interface GlobalSiteSettings {
+  siteTitle: string;
+  siteSubtitle: string;
+  targetSla: number;
+  probeInterval: number;
+  historyRetentionDays: number;
+  fontFamily?: 'jakarta' | 'sf-rounded' | 'system';
 }
 
 export interface SystemStatusData {

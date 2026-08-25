@@ -11,11 +11,11 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
 ];
 
 export const INITIAL_STATUS_DATA: SystemStatusData = {
-  systemStatus: 'operational',
-  headline: 'All Systems Operational',
-  subtitle: 'Real-time telemetry and edge health across all 310+ global locations',
+  systemStatus: 'no_data',
+  headline: 'Awaiting First Probe',
+  subtitle: 'Scheduled edge telemetry and service health',
   lastUpdated: new Date().toISOString(),
-  overallUptime90d: 100,
+  overallUptime90d: 0,
   avgLatencyMs: 0,
   totalProbesToday: 0,
   activeRegionsCount: 0,
