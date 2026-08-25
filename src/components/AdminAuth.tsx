@@ -1,7 +1,7 @@
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import { ArrowLeft, Fingerprint, KeyRound, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, NonJsonResponseError, readJson } from '../api';
 import type { Language } from '../i18n';
 
 interface AdminAuthProps {
@@ -16,20 +16,36 @@ interface SessionState {
 }
 
 export function AdminAuth({ children, lang, onBack }: AdminAuthProps) {
+  const zh = lang === 'zh';
   const [session, setSession] = useState<SessionState | null>(null);
   const [setupToken, setSetupToken] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  /** Turns a thrown value into something worth showing a human. */
+  const describe = useCallback(
+    (reason: unknown, fallback: string) => {
+      if (reason instanceof NonJsonResponseError) {
+        return zh
+          ? '管理接口没有返回 JSON，后端函数可能未部署或未挂载。'
+          : 'The admin API did not return JSON. The backend functions may not be deployed.';
+      }
+      return reason instanceof Error ? reason.message : fallback;
+    },
+    [zh],
+  );
+
   const refresh = useCallback(async () => {
     const response = await apiFetch('/api/auth/session');
-    if (!response.ok) throw new Error('Unable to check authentication status');
-    setSession(await response.json());
-  }, []);
+    if (!response.ok) throw new Error(zh ? '无法确认登录状态' : 'Unable to check authentication status');
+    setSession(await readJson<SessionState>(response));
+  }, [zh]);
 
   useEffect(() => {
-    refresh().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Authentication service unavailable'));
-  }, [refresh]);
+    refresh().catch((reason: unknown) =>
+      setError(describe(reason, zh ? '认证服务不可用' : 'Authentication service unavailable')),
+    );
+  }, [refresh, describe, zh]);
 
   const runPasskey = async () => {
     setBusy(true);
@@ -40,7 +56,7 @@ export function AdminAuth({ children, lang, onBack }: AdminAuthProps) {
         method: 'POST',
         headers: registering ? { 'X-Setup-Token': setupToken } : undefined,
       });
-      const payload = await optionsResponse.json();
+      const payload = await readJson<{ error?: string; options: never; challengeId: string }>(optionsResponse);
       if (!optionsResponse.ok) throw new Error(payload.error || 'Unable to start Passkey verification');
       const response = registering
         ? await startRegistration({ optionsJSON: payload.options })
@@ -50,11 +66,11 @@ export function AdminAuth({ children, lang, onBack }: AdminAuthProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challengeId: payload.challengeId, response }),
       });
-      const verification = await verifyResponse.json();
+      const verification = await readJson<{ error?: string; verified?: boolean }>(verifyResponse);
       if (!verifyResponse.ok || !verification.verified) throw new Error(verification.error || 'Passkey verification failed');
       await refresh();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Passkey verification failed');
+      setError(describe(reason, zh ? 'Passkey 验证失败' : 'Passkey verification failed'));
     } finally {
       setBusy(false);
     }
@@ -67,7 +83,6 @@ export function AdminAuth({ children, lang, onBack }: AdminAuthProps) {
 
   if (session?.authenticated) return <>{children(logout)}</>;
 
-  const zh = lang === 'zh';
   // Until the session request resolves we cannot tell an authenticated admin
   // from an anonymous visitor. Rendering the sign-in form during that window
   // made the login screen flash before the panel appeared.
