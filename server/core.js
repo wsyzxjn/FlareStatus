@@ -8,7 +8,6 @@ import {
 const DAY_MS = 86_400_000;
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
-const MAX_RECENT_SAMPLES = 720;
 
 const DEFAULT_CATEGORIES = [{
   id: 'default',
@@ -200,29 +199,7 @@ function emptyMonitorState() {
   return { latest: null, recent: [], days: {} };
 }
 
-async function recordProbe(storage, service, result, timestamp = new Date().toISOString()) {
-  const key = `monitor:${service.id}`;
-  const state = await readJSON(storage, key, emptyMonitorState());
-  const sample = { ...result, timestamp };
-  const recent = [...(Array.isArray(state.recent) ? state.recent : []), sample]
-    .filter((item) => Date.parse(item.timestamp) >= Date.now() - DAY_MS)
-    .slice(-MAX_RECENT_SAMPLES);
-  const date = timestamp.slice(0, 10);
-  const previous = state.days?.[date] || { total: 0, healthy: 0, latencyTotal: 0, worst: 'operational' };
-  const rank = { no_data: 0, operational: 1, degraded: 2, maintenance: 3, outage: 4 };
-  const day = {
-    total: previous.total + 1,
-    healthy: previous.healthy + (result.status === 'outage' ? 0 : 1),
-    latencyTotal: previous.latencyTotal + (Number(result.latency) || 0),
-    worst: rank[result.status] > rank[previous.worst] ? result.status : previous.worst,
-  };
-  const retentionStart = new Date(Date.now() - 90 * DAY_MS).toISOString().slice(0, 10);
-  const days = Object.fromEntries(Object.entries({ ...(state.days || {}), [date]: day }).filter(([keyDate]) => keyDate >= retentionStart));
-  await writeJSON(storage, key, { latest: sample, recent, days });
-  return sample;
-}
-
-async function monitorService(storage, service) {
+async function probeWithRetries(service) {
   const maxRetries = Math.min(5, Math.max(0, Number(service.maxRetries) || 0));
   let result;
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
@@ -231,14 +208,33 @@ async function monitorService(storage, service) {
     const retryDelay = Math.min(30, Math.max(1, Number(service.retryInterval) || 1)) * 1000;
     await new Promise((resolve) => setTimeout(resolve, retryDelay));
   }
-  return recordProbe(storage, service, result);
+  return result;
 }
 
-export async function runScheduled(storage) {
+export async function runScheduled(storage, telemetry) {
   const services = await loadServices(storage);
   const enabled = services.filter((service) => service.enabled);
-  await Promise.all(enabled.map((service) => monitorService(storage, service)));
-  await storage.put('monitor:last-run', new Date().toISOString());
+  // Zero services means zero work and, crucially, zero storage writes. The
+  // previous implementation unconditionally stamped a bookkeeping key here,
+  // which burned 720 KV writes/day (72% of the free tier) with no services
+  // configured at all.
+  if (!enabled.length) return 0;
+
+  const heartbeats = await telemetry.getHeartbeats();
+  const timestamp = new Date().toISOString();
+  const entries = await Promise.all(
+    enabled.map(async (service) => ({
+      serviceId: service.id,
+      sample: {
+        ...(await probeWithRetries({
+          ...service,
+          lastHeartbeatPing: heartbeats[service.id] ?? service.lastHeartbeatPing,
+        })),
+        timestamp,
+      },
+    })),
+  );
+  await telemetry.recordBatch(entries);
   return enabled.length;
 }
 
@@ -329,14 +325,15 @@ function headlineFor(status) {
   }[status];
 }
 
-async function statusPayload(storage) {
+async function statusPayload(storage, telemetry) {
   const [services, categories, incidents] = await Promise.all([
     loadServices(storage),
     readJSON(storage, 'config:categories', DEFAULT_CATEGORIES),
     readJSON(storage, 'config:incidents', []),
   ]);
   const enabled = services.filter((service) => service.enabled);
-  const states = await Promise.all(enabled.map((service) => readJSON(storage, `monitor:${service.id}`, emptyMonitorState())));
+  const stateMap = await telemetry.getStates(enabled.map((service) => service.id));
+  const states = enabled.map((service) => stateMap.get(service.id) ?? emptyMonitorState());
   const liveServices = enabled.map((service, index) => publicService(service, states[index]));
   const today = new Date().toISOString().slice(0, 10);
   const totalProbesToday = states.reduce((sum, state) => sum + (Number(state.days?.[today]?.total) || 0), 0);
@@ -511,7 +508,7 @@ async function authRoute(request, storage, setupToken) {
   return null;
 }
 
-async function adminRoute(request, storage) {
+async function adminRoute(request, storage, telemetry) {
   const url = new URL(request.url);
   if (!(await hasSession(request, storage))) return json({ error: 'Authentication required' }, 401);
 
@@ -542,7 +539,7 @@ async function adminRoute(request, storage) {
   }
 
   if ((url.pathname === '/api/admin/probe' || url.pathname === '/api/probe') && request.method === 'POST') {
-    const count = await runScheduled(storage);
+    const count = await runScheduled(storage, telemetry);
     return json({ success: true, count });
   }
 
@@ -560,7 +557,7 @@ async function adminRoute(request, storage) {
     const scope = body.scope || 'all';
     if (scope === 'all' || scope === 'services') {
       const services = await loadServices(storage);
-      await Promise.all(services.map((service) => storage.delete(`monitor:${service.id}`)));
+      await telemetry.clear(services.map((service) => service.id));
       await writeJSON(storage, 'config:services', []);
     }
     if (scope === 'all') await writeJSON(storage, 'config:categories', DEFAULT_CATEGORIES);
@@ -573,7 +570,7 @@ async function adminRoute(request, storage) {
   return json({ error: 'Not found' }, 404);
 }
 
-export function createApp({ storage, setupToken, assetsFetch }) {
+export function createApp({ storage, telemetry, setupToken, assetsFetch }) {
   return async function handle(request) {
     const url = new URL(request.url);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: { Allow: 'GET, POST, OPTIONS' } });
@@ -585,7 +582,7 @@ export function createApp({ storage, setupToken, assetsFetch }) {
       }
 
       if (url.pathname.startsWith('/api/admin/') || url.pathname === '/api/probe') {
-        return adminRoute(request, storage);
+        return adminRoute(request, storage, telemetry);
       }
 
       if (url.pathname.startsWith('/api/push/') && ['GET', 'POST'].includes(request.method)) {
@@ -593,27 +590,33 @@ export function createApp({ storage, setupToken, assetsFetch }) {
         const services = await loadServices(storage);
         const service = services.find((item) => item.monitorType === 'push' && item.pushToken && item.pushToken === token);
         if (!service) return json({ error: 'Invalid push token' }, 404);
-        service.lastHeartbeatPing = new Date().toISOString();
-        await writeJSON(storage, 'config:services', services);
-        await recordProbe(storage, service, { status: 'operational', latency: 0, statusCode: 200 }, service.lastHeartbeatPing);
-        return json({ success: true, receivedAt: service.lastHeartbeatPing });
+        const receivedAt = new Date().toISOString();
+        // Heartbeats are stored on their own key rather than by rewriting the
+        // shared service list, so concurrent check-ins cannot clobber each other.
+        await telemetry.setHeartbeat(service.id, receivedAt);
+        await telemetry.recordBatch([
+          { serviceId: service.id, sample: { status: 'operational', latency: 0, statusCode: 200, timestamp: receivedAt } },
+        ]);
+        return json({ success: true, receivedAt });
       }
 
       if (url.pathname === '/api/status' && request.method === 'GET') {
-        return json(await statusPayload(storage), 200, { 'Cache-Control': 'public, max-age=15, s-maxage=15', 'Access-Control-Allow-Origin': '*' });
+        return json(await statusPayload(storage, telemetry), 200, { 'Cache-Control': 'public, max-age=15, s-maxage=15', 'Access-Control-Allow-Origin': '*' });
       }
 
       if (url.pathname.startsWith('/api/badge/') && request.method === 'GET') {
-        const payload = await statusPayload(storage);
+        const payload = await statusPayload(storage, telemetry);
         const id = url.pathname.slice('/api/badge/'.length);
         const services = payload.categories.flatMap((category) => category.services);
         const service = id === 'overall' || id === 'all' ? null : services.find((item) => item.id === id);
         const svg = badgeSVG(service?.name || 'System Status', service?.status || payload.systemStatus, service?.uptime90d ?? payload.overallUptime90d);
-        return new Response(svg, { headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'", 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+        // Badges get embedded in READMEs and proxied by image caches; `no-store`
+        // turned every viewer into a full status recomputation.
+        return new Response(svg, { headers: { 'Content-Type': 'image/svg+xml; charset=utf-8', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'", 'Cache-Control': 'public, max-age=60, s-maxage=60', 'Access-Control-Allow-Origin': '*' } });
       }
 
       if (url.pathname === '/metrics' && request.method === 'GET') {
-        const payload = await statusPayload(storage);
+        const payload = await statusPayload(storage, telemetry);
         const services = payload.categories.flatMap((category) => category.services);
         let output = '# HELP probe_success Whether the latest probe was successful\n# TYPE probe_success gauge\n';
         for (const service of services) {
@@ -626,9 +629,10 @@ export function createApp({ storage, setupToken, assetsFetch }) {
       }
 
       if (url.pathname === '/api/cron-probe' && request.method === 'POST') {
-        const lastRun = Date.parse((await storage.get('monitor:last-run')) || '');
+        // Derived from stored samples, so debouncing costs no extra write.
+        const lastRun = Date.parse((await telemetry.lastRun()) || '');
         if (Number.isFinite(lastRun) && Date.now() - lastRun < 60_000) return json({ success: true, skipped: true });
-        return json({ success: true, count: await runScheduled(storage) });
+        return json({ success: true, count: await runScheduled(storage, telemetry) });
       }
 
       if (assetsFetch) return assetsFetch(request);

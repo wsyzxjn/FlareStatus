@@ -14,7 +14,7 @@ An independent status page and uptime monitor for Cloudflare Workers or Tencent 
 
 <br/>
 
-[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers%20%2B%20KV-F38020?style=flat&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers%20%2B%20Durable%20Objects-F38020?style=flat&logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind%20CSS-v4-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -34,7 +34,7 @@ An independent status page and uptime monitor for Cloudflare Workers or Tencent 
 - **Bilingual (i18n)**: One-click Chinese (`zh-CN`) and English (`en`) toggle with synchronized HTML `lang` attributes.
 
 ### ⚡ 100% Serverless Edge Architecture
-- **Zero Server Costs & Maintenance**: Runs entirely on Cloudflare Workers, Workers KV, and Static Assets.
+- **Zero Server Costs & Maintenance**: Runs entirely on Cloudflare Workers, a SQLite-backed Durable Object, and Static Assets.
 - **Scheduled Edge Probing**: Probes configured endpoints every 2 minutes through platform cron triggers (`*/2 * * * *`).
 - **Persisted Telemetry**: Stores real 24-hour samples and 90-day daily aggregates instead of generating synthetic uptime.
 
@@ -62,7 +62,7 @@ An independent status page and uptime monitor for Cloudflare Workers or Tencent 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 19, TypeScript, Vite 8, Tailwind CSS v4 (`@tailwindcss/vite`), Lucide React.
-- **Backend / Edge**: Cloudflare Workers, Workers KV, Worker Cron Triggers, Single-Page Application (SPA) Static Assets.
+- **Backend / Edge**: Cloudflare Workers, Durable Objects with embedded SQLite, Worker Cron Triggers, Single-Page Application (SPA) Static Assets.
 - **Security**: WebAuthn Passkeys with a one-time deployment setup token.
 
 ---
@@ -106,35 +106,28 @@ Deploy your own instance of FlareStatus with one click:
 
 ### 🛠️ CLI Manual Deployment via Wrangler
 
-If you prefer full control over custom domains and KV namespaces:
+If you prefer full control over custom domains and bindings:
 
-#### 1. Create a Cloudflare KV Namespace
-```bash
-npx wrangler kv namespace create STATUS_KV
-```
+#### 1. Review the storage binding
 
-Copy the returned `id` into `wrangler.jsonc`:
+No manual provisioning is needed. State lives in a SQLite-backed Durable Object
+that Wrangler creates on first deploy from the migration already declared in
+`wrangler.jsonc`:
+
 ```jsonc
 {
-  "name": "flare-status",
-  "main": "worker/index.ts",
-  "compatibility_date": "2026-08-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": "./dist",
-    "not_found_handling": "single-page-application"
+  "durable_objects": {
+    "bindings": [{ "name": "MONITOR_HUB", "class_name": "MonitorHub" }]
   },
-  "triggers": {
-    "crons": ["*/2 * * * *"]
-  },
-  "kv_namespaces": [
-    {
-      "binding": "STATUS_KV",
-      "id": "<YOUR_KV_NAMESPACE_ID>"
-    }
-  ]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MonitorHub"] }]
 }
 ```
+
+> **Why not Workers KV?** A 2-minute cron fires 720 times a day. Recording probe
+> results in KV costs at least one write per service per round, so even a single
+> monitored service exceeds the KV free-tier limit of 1,000 writes/day. Durable
+> Object SQLite allows 100,000 rows written/day and stores each probe as one row
+> instead of rewriting a whole JSON blob, which is roughly a 100x larger budget.
 
 #### 2. Configure the first-time setup token
 ```bash
@@ -209,7 +202,7 @@ Passkeys are scoped to the hostname used during registration. If the administrat
 | `/api/admin/categories` | `POST` | Update custom categories |
 | `/api/admin/incidents` | `POST` | Publish or update incident notices |
 | `/api/admin/notifications` | `POST` | Save alert channels and templates |
-| `/api/admin/clear-data` | `POST` | Clear or reset KV database |
+| `/api/admin/clear-data` | `POST` | Clear or reset the stored database |
 
 ---
 

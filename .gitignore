@@ -29,3 +29,4 @@ dist-ssr
 
 # EdgeOne local build output
 .edgeone/cloud-functions/
+.dev.vars

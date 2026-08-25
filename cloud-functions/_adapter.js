@@ -1,5 +1,6 @@
 import { getStore } from '@edgeone/pages-blob';
 import { createApp } from '../server/core.js';
+import { createBlobTelemetry } from '../server/telemetry-blob.js';
 
 export function edgeOneHandler(context) {
   const store = getStore({ name: 'flarestatus-store', consistency: 'strong' });
@@ -15,5 +16,5 @@ export function edgeOneHandler(context) {
     },
   };
   const setupToken = context.env?.ADMIN_SETUP_TOKEN || globalThis.process?.env?.ADMIN_SETUP_TOKEN;
-  return createApp({ storage, setupToken })(context.request);
+  return createApp({ storage, telemetry: createBlobTelemetry(storage), setupToken })(context.request);
 }

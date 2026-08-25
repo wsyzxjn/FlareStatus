@@ -1,7 +1,7 @@
 {
   "name": "flare-status",
   "version": "1.0.0",
-  "description": "Apple-style minimalist status monitor powered by Cloudflare Workers, KV, and Pages.",
+  "description": "Apple-style minimalist status monitor powered by Cloudflare Workers and Durable Objects.",
   "type": "module",
   "scripts": {
     "dev": "vite",

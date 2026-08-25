@@ -1,40 +1,52 @@
-import { createApp, runScheduled } from '../server/core.js';
+import type { Env } from './env';
 
-interface Env {
-  STATUS_KV?: KVNamespace;
-  ADMIN_SETUP_TOKEN?: string;
-  ASSETS?: Fetcher;
+export { MonitorHub } from './monitor-hub';
+
+/** All state lives in one hub instance, so the name is fixed. */
+const HUB_NAME = 'flare-status-hub';
+
+/**
+ * Public, unauthenticated reads. Serving these from the edge cache keeps routine
+ * page views and README badge impressions from waking the Durable Object.
+ */
+function isPublicRead(request: Request, pathname: string): boolean {
+  if (request.method !== 'GET') return false;
+  return pathname === '/api/status' || pathname === '/metrics' || pathname.startsWith('/api/badge/');
 }
 
-const developmentMemory = new Map<string, string>();
+function isApiRoute(pathname: string): boolean {
+  return pathname.startsWith('/api/') || pathname === '/metrics';
+}
 
-function createStorage(env: Env) {
-  return {
-    async get(key: string): Promise<string | null> {
-      return env.STATUS_KV ? env.STATUS_KV.get(key) : developmentMemory.get(key) ?? null;
-    },
-    async put(key: string, value: string): Promise<void> {
-      if (env.STATUS_KV) await env.STATUS_KV.put(key, value);
-      else developmentMemory.set(key, value);
-    },
-    async delete(key: string): Promise<void> {
-      if (env.STATUS_KV) await env.STATUS_KV.delete(key);
-      else developmentMemory.delete(key);
-    },
-  };
+function hub(env: Env) {
+  return env.MONITOR_HUB.get(env.MONITOR_HUB.idFromName(HUB_NAME));
 }
 
 export default {
-  async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
-    await runScheduled(createStorage(env));
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(hub(env).runProbes());
   },
 
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const handle = createApp({
-      storage: createStorage(env),
-      setupToken: env.ADMIN_SETUP_TOKEN,
-      assetsFetch: env.ASSETS ? (assetRequest: Request) => env.ASSETS!.fetch(assetRequest) : undefined,
-    });
-    return handle(request);
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const { pathname } = new URL(request.url);
+
+    if (!isApiRoute(pathname)) {
+      return env.ASSETS
+        ? env.ASSETS.fetch(request)
+        : new Response(JSON.stringify({ error: 'Not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          });
+    }
+
+    if (!isPublicRead(request, pathname)) return hub(env).fetch(request);
+
+    const cache = caches.default;
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    const response = await hub(env).fetch(request);
+    if (response.ok) ctx.waitUntil(cache.put(request, response.clone()));
+    return response;
   },
 };

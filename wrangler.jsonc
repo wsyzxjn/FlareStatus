@@ -18,10 +18,22 @@
   "triggers": {
     "crons": ["*/2 * * * *"]
   },
-  "kv_namespaces": [
+  // All state lives in the MonitorHub Durable Object's embedded SQLite database.
+  // Workers KV was removed: a 2-minute cron against KV cannot fit the free-tier
+  // ceiling of 1,000 writes/day, while SQLite-backed Durable Objects allow
+  // 100,000 rows written/day.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MONITOR_HUB",
+        "class_name": "MonitorHub"
+      }
+    ]
+  },
+  "migrations": [
     {
-      "binding": "STATUS_KV",
-      "id": "349b39b70d4e47f88f0834a6c761167f"
+      "tag": "v1",
+      "new_sqlite_classes": ["MonitorHub"]
     }
   ]
 }

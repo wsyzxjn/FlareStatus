@@ -15,7 +15,7 @@ export const Footer: React.FC<FooterProps> = ({ lastUpdated, t }) => {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e5e5ea]/80 dark:bg-white/10 text-[#1d1d1f] dark:text-[#f5f5f7]">
             <Cloud className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#a1a1a6] stroke-[1.75]" />
-            <span className="font-medium">Cloudflare Workers + KV + Pages</span>
+            <span className="font-medium">Cloudflare Workers + Durable Objects</span>
           </div>
           <span className="text-[11px] hidden sm:inline text-[#86868b]">
             {t.serverlessBadge}

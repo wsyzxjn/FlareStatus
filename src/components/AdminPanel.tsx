@@ -228,7 +228,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleClearAllData = async () => {
-    if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有监控端点、自定义分类、事件历史与告警通道吗？此操作将彻底清空云端 KV 数据库。' : 'Warning: Are you sure you want to clear all services, categories, incidents and KV storage?')) return;
+    if (!window.confirm(lang === 'zh' ? '警告：确定要清空所有监控端点、自定义分类、事件历史与告警通道吗？此操作将彻底清空云端数据库。' : 'Warning: Are you sure you want to clear all services, categories, incidents and stored history?')) return;
     try {
       await apiFetch('/api/admin/clear-data', {
         method: 'POST',
@@ -895,7 +895,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       {savedToast && (
         <div className="fixed bottom-6 right-6 z-50 px-3.5 py-2 rounded-xl bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
           <Check className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{lang === 'zh' ? '设置已自动同步至 KV' : 'Saved to Cloudflare KV'}</span>
+          <span>{lang === 'zh' ? '设置已自动同步至云端' : 'Saved to Cloudflare'}</span>
         </div>
       )}
 
@@ -1689,7 +1689,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <span>{lang === 'zh' ? '彻底清空全部数据 (Master Reset)' : 'Master Reset: Clear All Data'}</span>
                           </div>
                           <div className="text-[11px] text-[#6e6e73] dark:text-[#a1a1a6] mt-0.5">
-                            {lang === 'zh' ? '彻底清空 Cloudflare KV 中的所有端点、事件、告警通道与历史打点，恢复初始空状态。' : 'Wipes all services, incidents, channels and history from Cloudflare KV.'}
+                            {lang === 'zh' ? '彻底清空云端存储中的所有端点、事件、告警通道与历史打点，恢复初始空状态。' : 'Wipes all services, incidents, channels and history from cloud storage.'}
                           </div>
                         </div>
                         <button
